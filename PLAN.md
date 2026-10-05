@@ -43,8 +43,9 @@ The heal still *feels* like a heal (green glow, a rising bar, a smug sound) but 
 
 - `npm create vite@latest` → React + TypeScript
 - Tailwind v4 via `@tailwindcss/vite`
-- `motion` (Framer Motion's current package, `motion/react`)
-- **That's it.** No router (a screen state machine), no IDB library (an ~80-line wrapper), no audio library (Web Audio synthesis), no html2canvas (the win card is drawn on a `<canvas>` by hand).
+- `motion` (Framer Motion's current package, `motion/react`) for menus and screen transitions
+- **`pixi.js` (WebGL 2D engine)** for the raid scene: painted boss sprites, particles, glow/bloom, hit-stop, shake, shatter on death. React stays in charge of menus and HUD. *(Added Oct 5 for the App Store-quality target, see §9.)*
+- Still no router (a screen state machine), no IDB library (an ~80-line wrapper), no audio library (Web Audio synthesis), no html2canvas (the win card is drawn on a `<canvas>` by hand).
 - Dev only: `vitest` for the raid reducer (pure logic, cheap to test, catches the HP-math bugs that would ruin a demo).
 - Deploy: Netlify via its GitHub integration (set up in the Netlify dashboard).
 
@@ -225,15 +226,22 @@ Platform gotchas handled in the plan:
 
 ---
 
-## 9. Art direction
+## 9. Art direction: App Store quality (revised Oct 5)
 
-- Dark dungeon palette (deep indigo/stone) with one hot accent per boss. A chunky pixel-ish display font from Google Fonts (e.g. "Press Start 2P" for numbers, a readable sans for everything else).
-- Each boss is a hand-built SVG with **4 damage stages** (100–75 / 75–50 / 50–25 / 25–0%): cracks appear, it shrinks ~25% overall, the expression goes smug → annoyed → panicked → desperate, and an idle sway that gets more frantic.
+**Target:** it should look and feel like a premium mobile game someone would pay for, not a web page. Full spec in [`docs/ART_DIRECTION.md`](docs/ART_DIRECTION.md).
+
+- **Painted art, AI-generated** (Bloom), in one consistent style: chunky, stylized, painterly fantasy with soft rim lighting, set in a dark dungeon. Disclosed in the README.
+- **Bosses:** one painted, transparent sprite per damage stage (**4 stages**: 100–75 / 75–50 / 50–25 / 25–0%). Later stages are generated from the stage-1 image as a reference so the boss stays recognizably the same creature: it gets smaller, more torn apart, and goes smug → annoyed → panicked → desperate.
   - **Laundry Leviathan:** a serpent of tangled shirts and socks, sock-puppet eyes, sleeves for fins.
-  - **Sink Hydra:** three plate-headed necks rising from suds, fork teeth. A head drops off at each stage.
-  - **Clutter Golem:** a stacked-junk humanoid (books, a shoe, a mug, cables). Blocks fall off as HP drops.
-  - **Mess Elemental:** a generic tinted blob with the chore name on a banner.
-- On hit: a white flash on the SVG, a squash-stretch, particles in the boss's material colors.
+  - **Sink Hydra:** three plate-headed necks rising from suds, fork teeth. Loses a head per stage.
+  - **Clutter Golem:** a stacked-junk humanoid (books, a shoe, a mug, cables). Chunks fall off as HP drops.
+  - **Mess Elemental (custom bosses):** one painted neutral sprite, recolored at runtime with a hue filter.
+- **Painted arenas:** one 9:16 dungeon background per boss, with parallax layers and drifting dust/embers.
+- **Game feel (PixiJS):** every hit gets hit-stop (~60 ms freeze), a white flash, squash-and-stretch, a screen shake that scales with the combo, impact particles in the boss's material (sock scraps, suds, splinters), and a damage number. Combo tiers add glow/bloom and a screen-edge vignette. Wind-ups darken the arena and charge a red aura. Death: freeze → crack lines → the sprite shatters into pieces with a flash and a burst of material particles.
+- **Loot:** a painted treasure chest that shakes, glows in its rarity color and bursts open; painted trophy icons for the trophy room.
+- **UI:** a chunky game display font (e.g. "Lilita One") instead of the pixel font, glossy beveled buttons with press states, animated screen transitions, and a painted key-art header on the hub.
+- **Budget:** about 40 of the 50 Bloom credits; the rest is a buffer for retries.
+- **Performance:** 60 fps on a mid-range Android. Sprites are WebP, at most 1024 px, and particle counts scale down if frames drop.
 
 ---
 
@@ -245,11 +253,11 @@ Times are UTC. Each milestone ends with: run it, fix it, commit, push, deploy, a
 
 **Day 2 (Tue → Wed):** combo meter, wind-ups, Loot Stars/Ward, the full SFX set, the speech queue with progress lines, Wake Lock, undo, voice hits. **You fold a real pile with eyes on the laundry. The question to answer: can you play it without looking?**
 
-**Day 3 (Wed → Thu):** the three boss SVGs with damage stages, particles, shake, damage numbers, death + loot chest, photos, win card canvas, trophy room, custom bosses.
+**Day 3 (Wed → Thu):** the painted bosses with damage stages and arenas in the PixiJS raid scene, particles, hit-stop, shake, damage numbers, shatter death + loot chest, photos, win card canvas, trophy room, custom bosses.
 
 **Day 4 (Thu → Fri 12:00 freeze):** a real-phone bug bash across all three chores, perf on a mid-range Android, polish, final deploy. README (concept, how to play, how AI was used, stack, screenshots, live link), DEMO_SCRIPT.md. The afternoon before 18:00 is a buffer only.
 
-**Deadline tripwires:** if Day 1 isn't playable end-to-end by Tue 18:00, voice hits and hero skins are cut immediately. If the boss art isn't done by Thu 12:00, the bosses ship as stylized 2-stage SVGs.
+**Deadline tripwires:** if Day 1 isn't playable end-to-end by Tue 18:00, voice hits and hero skins are cut immediately. If the boss art isn't done by Thu 12:00, the bosses ship with 2 damage stages instead of 4.
 
 ---
 
@@ -264,3 +272,4 @@ Times are UTC. Each milestone ends with: run it, fix it, commit, push, deploy, a
 - **Repo:** `Bdot0311/chore-raid` (public), created and first pushed at kickoff (Mon Oct 5 18:00 UTC), not before.
 - **Commit author:** `Bdot0311 <236258625+Bdot0311@users.noreply.github.com>`.
 - **Netlify:** GitHub integration via the dashboard. The Netlify CLI isn't installed locally.
+- **Visual target (Oct 5):** App Store-quality game, not a prototype look. AI-painted art via Bloom, and PixiJS for game feel (see §2, §9).
