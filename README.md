@@ -10,6 +10,15 @@ Built for the Hackyard build week (theme: Gamification), Oct 5–9, 2026.
 
 **Status:** in development. See [PLAN.md](PLAN.md) for the build plan.
 
+## Run it locally
+
+```sh
+npm install
+npm run dev     # http://localhost:5173
+npm test        # raid logic tests
+npm run build   # production build in dist/
+```
+
 ## License
 
 [MIT](LICENSE)
