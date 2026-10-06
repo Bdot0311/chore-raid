@@ -45,8 +45,10 @@ export function RaidScreen({ boss, initial, settings, onSettings, onWin, onLeave
         case 'hit': {
           const p = lastPoint.current ?? centerPoint();
           lastPoint.current = null;
-          stage.current?.hit(p.x, p.y, e.multiplier, e.gained);
+          const strike = stage.current?.hit(p.x, p.y, e.multiplier, e.gained);
+          sfx.swing(strike?.move === 'smash' || strike?.move === 'spin');
           sfx.hit(raid.streak);
+          if (strike?.bolt) sfx.lightning();
           navigator.vibrate?.(e.multiplier >= 3 ? 25 : 15);
           const line = lines.progress(boss, e.hp, raid.maxHp);
           if (line && !activeWindup(raid)) speech.say(line, 'progress');
@@ -55,6 +57,7 @@ export function RaidScreen({ boss, initial, settings, onSettings, onWin, onLeave
         case 'combo-up':
           stage.current?.comboUp(e.multiplier);
           sfx.comboUp(e.multiplier);
+          if (e.multiplier >= 3) sfx.lightning();
           speech.say(lines.combo(e.multiplier));
           break;
         case 'combo-break':
@@ -185,7 +188,17 @@ export function RaidScreen({ boss, initial, settings, onSettings, onWin, onLeave
       className="tap-surface relative h-full overflow-hidden bg-dungeon-950"
       onPointerDown={dying ? undefined : onPointerDown}
     >
-      <RaidStage ref={stage} boss={boss} hpPct={hpPct} />
+      <RaidStage
+        ref={stage}
+        boss={boss}
+        hpPct={hpPct}
+        onBossAttack={(big) => {
+          sfx.bossAttack(big);
+          navigator.vibrate?.(big ? [120, 50, 120] : 90);
+          // Taunt now and then, not every time, so the narration stays readable.
+          if (!big && Math.random() < 0.5) speech.say(lines.attack(boss));
+        }}
+      />
 
       <div className="safe-pad pointer-events-none relative flex h-full flex-col">
         <header className="flex items-start gap-3">

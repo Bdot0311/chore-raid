@@ -106,6 +106,29 @@ class Sfx {
     this.burst(t, 0.12, { freq: 2400 + semis * 120, q: 0.8, gain: 0.35 });
   }
 
+  /** A blade whoosh: band-passed noise swept fast, a little different per move. */
+  swing(heavy: boolean) {
+    if (!this.ready) return;
+    const t = this.now;
+    this.burst(t, heavy ? 0.22 : 0.14, { freq: heavy ? 600 : 1200, to: heavy ? 2400 : 4200, q: 2.5, gain: 0.32 });
+  }
+
+  /** The boss's blow: a low growl and a heavy thud. */
+  bossAttack(big: boolean) {
+    if (!this.ready) return;
+    const t = this.now;
+    this.tone(big ? 70 : 95, t, 0.5, { wave: 'sawtooth', gain: 0.22, to: big ? 40 : 55, attack: 0.05 });
+    this.burst(t, 0.35, { type: 'lowpass', freq: 900, to: 120, gain: 0.5 });
+    this.tone(48, t + 0.05, 0.3, { gain: 0.7, to: 30 });
+  }
+
+  lightning() {
+    if (!this.ready) return;
+    const t = this.now;
+    this.burst(t, 0.5, { type: 'highpass', freq: 2500, gain: 0.45 });
+    this.burst(t + 0.03, 0.9, { type: 'lowpass', freq: 400, to: 60, gain: 0.55 });
+  }
+
   comboUp(multiplier: number) {
     if (!this.ready) return;
     const t = this.now + 0.05;

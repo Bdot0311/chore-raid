@@ -10,6 +10,7 @@ import {
   Texture,
   type Ticker,
 } from 'pixi.js';
+import { Weapon, type Move } from './Weapon';
 
 /**
  * The raid's WebGL scene: painted boss, arena, particles and every bit of hit
@@ -19,7 +20,12 @@ import {
 
 export interface SceneBoss {
   hue: number;
-  texture: Texture;
+  /** Damage stages, healthiest first (1–4 textures). */
+  stages: Texture[];
+  /** Painted first-person weapon; a drawn one is used when absent. */
+  weapon?: Texture;
+  /** Fired when the boss lands a (purely cosmetic) blow, for sound and haptics. */
+  onBossAttack?: (big: boolean) => void;
   /** Painted arena background; a gradient is drawn when absent. */
   arena?: HTMLImageElement;
   /** Particle colors: the boss's material (fabric scraps, suds, splinters). */
@@ -81,6 +87,17 @@ export class RaidScene {
   private texts = new Container();
   private flash = new Graphics();
   private vignette = new Sprite();
+  private hurt = new Graphics();
+  private claws = new Container();
+  private weapon!: Weapon;
+  private stage = 0;
+  private glowTextures: Texture[] = [];
+  private lastHitAt = 0;
+  private nextAttackIn = 9;
+  private counterUntil = 0;
+  private hurtLevel = 0;
+  private lunge: Spring = { x: 0, v: 0 };
+  private attackCharge = 0;
 
   private bossFilter = new ColorMatrixFilter();
   private dotTex!: Texture;
@@ -129,15 +146,17 @@ export class RaidScene {
     this.dotTex = this.app.renderer.generateTexture(new Graphics().circle(0, 0, 8).fill(0xffffff));
     this.shardTex = this.app.renderer.generateTexture(new Graphics().poly([0, 0, 14, 4, 6, 12]).fill(0xffffff));
 
-    this.glow.texture = this.bakeGlow(boss.texture);
+    this.glowTextures = boss.stages.map((t) => this.bakeGlow(t));
+    this.glow.texture = this.glowTextures[0];
     this.glow.anchor.set(0.5);
     this.glow.blendMode = 'add';
-    this.bossSprite.texture = boss.texture;
+    this.bossSprite.texture = boss.stages[0];
     this.bossSprite.anchor.set(0.5, 0.5);
     this.bossRoot.addChild(this.aura, this.glow, this.bossSprite);
 
-    this.world.addChild(this.bgSprite, this.embers, this.dim, this.bossRoot, this.fx, this.texts);
-    this.app.stage.addChild(this.world, this.vignette, this.flash);
+    this.weapon = new Weapon(this.app.renderer, boss.weapon);
+    this.world.addChild(this.bgSprite, this.embers, this.dim, this.bossRoot, this.fx, this.weapon.root, this.texts);
+    this.app.stage.addChild(this.world, this.vignette, this.hurt, this.claws, this.flash);
 
     for (let i = 0; i < 42; i++) this.spawnEmber(true);
 
@@ -161,14 +180,28 @@ export class RaidScene {
   }
 
   /** x, y in CSS pixels relative to the stage. */
-  hit(x: number, y: number, multiplier: number, gained: number) {
-    if (!this.ready || this.dead) return;
+  hit(x: number, y: number, multiplier: number, gained: number): { move: Move; bolt: boolean } | undefined {
+    if (!this.ready || this.dead) return undefined;
+    const countered = this.time < this.counterUntil;
+    this.counterUntil = 0;
+    this.lastHitAt = this.time;
+    this.nextAttackIn = rand(7, 12);
+    this.attackCharge = 0;
     this.combo = multiplier;
+    const move = this.weapon.attack(countered ? 'smash' : undefined);
+    this.slashFor(move, multiplier >= 3 ? hsl(this.boss.hue, 0.95, 0.75) : 0xffffff);
+    const bolt = multiplier >= 3 && (multiplier === 4 || Math.random() < 0.5);
+    if (bolt) this.lightning();
+    if (countered) {
+      const { bx, by } = this.bossCenter();
+      this.number(bx, by - 150, 'COUNTER!', 0x7dd3fc, 60, 1.4);
+    }
     this.hitStop = 55 + multiplier * 10;
     this.shake = Math.min(26, 7 + multiplier * 4);
     this.flashLevel = 1;
     this.squash.v += 5 + multiplier;
     this.knock.v -= 260 + multiplier * 60;
+    this.lunge.v -= 2 + multiplier * 0.5;
 
     const { bx, by } = this.bossCenter();
     // Particles burst from the boss toward the tap, so it reads as "you struck it there".
@@ -178,6 +211,7 @@ export class RaidScene {
     this.burst(ix, iy, 10 + multiplier * 4, { speed: 300, colors: [0xffffff, hsl(this.boss.hue, 0.9, 0.75)], gravity: 0, life: 0.45, add: true, scale: 0.9 });
     this.ring(ix, iy, multiplier >= 3 ? hsl(this.boss.hue, 0.9, 0.7) : 0xffffff, 60 + multiplier * 30);
     this.number(x, y - 30, `+${gained}`, multiplier >= 3 ? 0xffc94d : 0xffffff, 40 + multiplier * 6);
+    return { move, bolt };
   }
 
   comboUp(multiplier: number) {
@@ -186,12 +220,22 @@ export class RaidScene {
     const label = ({ 2: 'COMBO ×2', 3: 'TRIPLE ×3', 4: 'UNSTOPPABLE ×4' } as Record<number, string>)[multiplier];
     if (label) this.number(w / 2, h * 0.3, label, 0xffc94d, 52, 1.4);
     this.burst(w / 2, h * 0.3, 40, { speed: 600, colors: [0xffc94d, 0xff6b3d, 0xffffff], gravity: 300, add: true });
+    if (multiplier >= 3) this.lightning();
+    if (multiplier >= 4) {
+      // Ultimate: an X of light across the boss and a beat of slow motion.
+      const { bx, by } = this.bossCenter();
+      this.hitStop = 220;
+      this.overlayFlash = 0.6;
+      this.arc(bx, by, 190, -2.6, -0.5, 0xffc94d, 34, 420);
+      this.arc(bx, by, 190, 2.6, 0.5, 0xffc94d, 34, 420);
+    }
   }
 
   windup(on: boolean) {
     this.windupOn = on;
     if (on && this.ready) {
       this.shake = Math.max(this.shake, 14);
+      this.lunge.v += 6;
       const { width: w, height: h } = this.app.screen;
       this.number(w / 2, h * 0.3, 'WIND-UP!', 0xff5a4d, 64, 1.6);
     }
@@ -207,6 +251,9 @@ export class RaidScene {
       this.hitStop = 140;
       this.burst(bx, by, 90, { speed: 900, colors: [0xffc94d, 0xffffff, 0xff6b3d], gravity: 500, add: true, scale: 1.2 });
       this.burst(bx, by, 40, { speed: 700, colors: this.boss.material, tex: this.shardTex, gravity: 1100 });
+      this.weapon.attack('smash');
+      this.arc(bx, by, 170, -2.2, -0.9, 0xffc94d, 30, 380);
+      this.number(bx, by - 170, 'PARRY!', 0x7dd3fc, 52, 1.5);
       this.number(bx, by - 120, 'CRITICAL!', 0xffc94d, 72, 1.8);
       if (bonus) this.number(bx, by - 50, `+${bonus}`, 0xffc94d, 48, 1.6);
     } else {
@@ -223,6 +270,7 @@ export class RaidScene {
         });
       }
       this.number(bx, by - 120, 'WARD HEALED', 0x4ade80, 46, 1.6);
+      this.bossAttack(true);
     }
   }
 
@@ -239,6 +287,12 @@ export class RaidScene {
     this.hitStop = 320;
     this.shake = 36;
     this.flashLevel = 1;
+    // Finisher: a spinning double slash, a held beat, then the boss breaks apart.
+    this.weapon.attack('spin');
+    const { bx: fx, by: fy } = this.bossCenter();
+    this.arc(fx, fy, 210, -2.7, -0.4, 0xffffff, 40, 520);
+    this.arc(fx, fy, 210, 2.7, 0.4, 0xffffff, 40, 520);
+    this.number(fx, fy - 190, 'FINISHED!', 0xffc94d, 76, 2);
     return new Promise((resolve) => {
       window.setTimeout(() => {
         if (this.destroyed) return resolve();
@@ -249,7 +303,7 @@ export class RaidScene {
         this.burst(bx, by, 80, { speed: 700, colors: [0xffc94d, 0xffffff, hsl(this.boss.hue, 0.9, 0.7)], gravity: 0, add: true, life: 0.9, scale: 1.4 });
         this.ring(bx, by, 0xffffff, 520);
         window.setTimeout(resolve, 1500);
-      }, 340);
+      }, 520);
     });
   }
 
@@ -273,6 +327,10 @@ export class RaidScene {
     // Full-screen layers cost fill rate on phones even at alpha 0, so hide them when idle.
     this.flash.visible = this.overlayFlash > 0.01;
 
+    this.hurtLevel = Math.max(0, this.hurtLevel - dtMs / 600);
+    this.hurt.alpha = this.hurtLevel;
+    this.hurt.visible = this.hurtLevel > 0.01;
+
     const s = this.shake;
     this.world.position.set(rand(-s, s), rand(-s, s));
     this.shake = Math.max(0, this.shake - dtMs * 0.09);
@@ -286,15 +344,31 @@ export class RaidScene {
     this.time += dt;
     stepSpring(this.squash, dt);
     stepSpring(this.knock, dt, 220, 14);
+    stepSpring(this.lunge, dt, 160, 12);
+    this.weapon.update(dt, this.time);
+    this.updateStage();
 
+    // The mess fights back when you stall: a cosmetic blow after a few idle seconds.
+    if (!this.dead && !this.windupOn && this.time - this.lastHitAt > this.nextAttackIn) {
+      this.attackCharge += dt;
+      if (this.attackCharge > 0.7) {
+        this.bossAttack(false);
+        this.lastHitAt = this.time;
+        this.nextAttackIn = rand(8, 14);
+        this.attackCharge = 0;
+      }
+    }
     // Shrinks ~25% overall as it loses HP; panics (faster, jerkier sway) when low.
-    const targetScale = 0.75 + 0.25 * this.hpPct;
+    // Damage-stage art already shows the boss shrinking, so scale less when it exists.
+    const targetScale = this.boss.stages.length > 1 ? 0.88 + 0.12 * this.hpPct : 0.75 + 0.25 * this.hpPct;
     this.shownScale += (targetScale - this.shownScale) * Math.min(1, dt * 6);
     const low = this.hpPct < 0.25;
     const swaySpeed = low ? 5.5 : this.hpPct < 0.5 ? 2.6 : 1.6;
     const breathe = Math.sin(this.time * swaySpeed) * 0.025;
     const sq = Math.max(-0.3, Math.min(0.3, this.squash.x * 0.06));
-    const sc = this.baseScale * this.shownScale;
+    // Rears back while charging a blow, surges toward you when it lands.
+    const charge = this.attackCharge > 0 ? -0.06 * Math.min(1, this.attackCharge / 0.7) : 0;
+    const sc = this.baseScale * this.shownScale * (1 + this.lunge.x * 0.04 + charge);
     this.bossSprite.scale.set(sc * (1 + sq + breathe * 0.5), sc * (1 - sq * 0.8 + breathe));
     this.bossSprite.rotation = Math.sin(this.time * swaySpeed * 0.7) * (low ? 0.06 : 0.025);
     const tremble = this.windupOn || low ? rand(-2.5, 2.5) : 0;
@@ -342,6 +416,187 @@ export class RaidScene {
 
   // ---------------------------------------------------------------- pieces
 
+  private updateStage() {
+    const n = this.boss.stages.length;
+    if (n < 2 || this.dead) return;
+    const lost = 1 - this.hpPct;
+    const next = Math.min(n - 1, Math.floor(lost * n + 1e-6));
+    if (next === this.stage) return;
+    const breaking = next > this.stage;
+    this.stage = next;
+    this.bossSprite.texture = this.boss.stages[next];
+    this.glow.texture = this.glowTextures[next];
+    if (breaking) {
+      // A piece of the boss gives way: flash, debris, a beat of hit-stop.
+      const { bx, by } = this.bossCenter();
+      this.hitStop = Math.max(this.hitStop, 120);
+      this.overlayFlash = 0.45;
+      this.shake = Math.max(this.shake, 24);
+      this.burst(bx, by, 70, { speed: 900, colors: this.boss.material, tex: this.shardTex, gravity: 1200, scale: 1.4 });
+      this.number(bx, by - 140, 'BROKEN!', 0xffffff, 54, 1.3);
+    }
+  }
+
+  /** A slash trail that matches the weapon move. */
+  private slashFor(move: Move, color: number) {
+    const { bx, by } = this.bossCenter();
+    const r = Math.min(this.app.screen.width * 0.42, 210);
+    switch (move) {
+      case 'slash':
+        this.arc(bx + 20, by - 10, r, -0.5, -2.6, color, 26, 260);
+        break;
+      case 'backslash':
+        this.arc(bx - 20, by - 10, r, -2.7, -0.6, color, 24, 260);
+        break;
+      case 'smash':
+        this.arc(bx - r * 0.6, by, r, -1.2, 0.3, color, 30, 300);
+        this.ring(bx, by + r * 0.6, color, 260);
+        break;
+      case 'thrust':
+        this.impactStar(bx + rand(-30, 30), by + rand(-40, 20), color);
+        break;
+      case 'spin':
+        this.arc(bx, by, r, -3, 0, color, 34, 360);
+        break;
+    }
+  }
+
+  /** A crescent of light swept from angle a0 to a1, fading out. */
+  private arc(cx: number, cy: number, r: number, a0: number, a1: number, color: number, width: number, ms: number) {
+    const g = new Graphics();
+    g.blendMode = 'add';
+    this.fx.addChild(g);
+    const start = performance.now();
+    const steps = 22;
+    const draw = (k: number) => {
+      g.clear();
+      // The trail grows along the sweep for the first third, then thins and fades.
+      const reach = Math.min(1, k * 3);
+      const fade = k < 0.35 ? 1 : 1 - (k - 0.35) / 0.65;
+      for (const [wMul, c, alpha] of [
+        [1, color, 0.55],
+        [0.4, 0xffffff, 0.95],
+      ] as const) {
+        const outer: [number, number][] = [];
+        const inner: [number, number][] = [];
+        for (let i = 0; i <= steps; i++) {
+          const a = a0 + (a1 - a0) * (i / steps) * reach;
+          const wv = width * wMul * Math.sin(Math.PI * (i / steps)) * fade;
+          outer.push([cx + Math.cos(a) * (r + wv), cy + Math.sin(a) * (r + wv)]);
+          inner.push([cx + Math.cos(a) * (r - wv * 0.3), cy + Math.sin(a) * (r - wv * 0.3)]);
+        }
+        const pts = [...outer, ...inner.reverse()].flat();
+        g.poly(pts).fill({ color: c, alpha: alpha * fade });
+      }
+    };
+    const tick = () => {
+      const k = (performance.now() - start) / ms;
+      if (k >= 1 || this.destroyed) {
+        this.app.ticker?.remove(tick);
+        g.destroy();
+        return;
+      }
+      draw(k);
+    };
+    this.app.ticker.add(tick);
+  }
+
+  private impactStar(x: number, y: number, color: number) {
+    const g = new Graphics();
+    g.blendMode = 'add';
+    g.position.set(x, y);
+    for (let i = 0; i < 10; i++) {
+      const a = (i / 10) * Math.PI * 2 + rand(-0.2, 0.2);
+      const len = rand(60, 130);
+      g.poly([0, 0, Math.cos(a + 0.08) * 18, Math.sin(a + 0.08) * 18, Math.cos(a) * len, Math.sin(a) * len, Math.cos(a - 0.08) * 18, Math.sin(a - 0.08) * 18]).fill(i % 2 ? color : 0xffffff);
+    }
+    this.fx.addChild(g);
+    const start = performance.now();
+    const tick = () => {
+      const k = (performance.now() - start) / 260;
+      if (k >= 1 || this.destroyed) {
+        this.app.ticker?.remove(tick);
+        g.destroy();
+        return;
+      }
+      g.scale.set(0.4 + k * 0.9);
+      g.alpha = 1 - k;
+    };
+    this.app.ticker.add(tick);
+  }
+
+  /** A jagged bolt from the top of the screen onto the boss. */
+  private lightning() {
+    const { bx, by } = this.bossCenter();
+    const g = new Graphics();
+    g.blendMode = 'add';
+    const tx = bx + rand(-60, 60);
+    const pts: number[] = [tx + rand(-80, 80), -20];
+    let y = -20;
+    while (y < by - 20) {
+      y += rand(30, 60);
+      pts.push(tx + rand(-40, 40), Math.min(y, by - 20));
+    }
+    for (const [width, color, alpha] of [
+      [18, 0x7dd3fc, 0.35],
+      [7, 0xe0f2fe, 0.9],
+      [3, 0xffffff, 1],
+    ] as const) {
+      g.moveTo(pts[0], pts[1]);
+      for (let i = 2; i < pts.length; i += 2) g.lineTo(pts[i], pts[i + 1]);
+      g.stroke({ width, color, alpha, cap: 'round', join: 'round' });
+    }
+    this.fx.addChild(g);
+    this.overlayFlash = Math.max(this.overlayFlash, 0.35);
+    this.burst(tx, by - 20, 30, { speed: 600, colors: [0x7dd3fc, 0xffffff], gravity: 400, add: true, life: 0.5 });
+    const start = performance.now();
+    const tick = () => {
+      const k = (performance.now() - start) / 300;
+      if (k >= 1 || this.destroyed) {
+        this.app.ticker?.remove(tick);
+        g.destroy();
+        return;
+      }
+      g.alpha = k < 0.3 ? 1 : (1 - k) * (Math.random() < 0.3 ? 0.4 : 1);
+    };
+    this.app.ticker.add(tick);
+  }
+
+  /** The boss lunges at the camera and rakes the screen. HP never changes. */
+  private bossAttack(big: boolean) {
+    if (!this.ready || this.dead) return;
+    this.lunge.v += big ? 14 : 9;
+    this.shake = Math.max(this.shake, big ? 30 : 20);
+    this.hurtLevel = big ? 1 : 0.75;
+    this.weapon.block();
+    this.counterUntil = this.time + 1.6;
+    const { width: w, height: h } = this.app.screen;
+    const marks = new Graphics();
+    const n = big ? 4 : 3;
+    const x0 = rand(w * 0.15, w * 0.35);
+    for (let i = 0; i < n; i++) {
+      const ox = x0 + i * w * 0.13;
+      marks
+        .poly([ox, h * 0.18, ox + 14, h * 0.2, ox + w * 0.32, h * 0.72, ox + w * 0.3, h * 0.74])
+        .fill({ color: 0xff2a2a, alpha: 0.85 })
+        .poly([ox + 4, h * 0.2, ox + 8, h * 0.21, ox + w * 0.31, h * 0.72, ox + w * 0.305, h * 0.725])
+        .fill({ color: 0xffd0d0, alpha: 0.9 });
+    }
+    this.claws.addChild(marks);
+    const start = performance.now();
+    const tick = () => {
+      const k = (performance.now() - start) / 900;
+      if (k >= 1 || this.destroyed) {
+        this.app.ticker?.remove(tick);
+        marks.destroy();
+        return;
+      }
+      marks.alpha = k < 0.15 ? k / 0.15 : 1 - (k - 0.15) / 0.85;
+    };
+    this.app.ticker.add(tick);
+    this.boss.onBossAttack?.(big);
+  }
+
   /** The boss's center in world (fx layer) coordinates. */
   private bossCenter() {
     return { bx: this.app.screen.width / 2, by: this.bossY };
@@ -363,8 +618,15 @@ export class RaidScene {
     this.dim.alpha = 0;
     this.flash.clear().rect(0, 0, w, h).fill(0xffffff);
     this.flash.alpha = 0;
+    this.hurt.clear();
+    for (let i = 0; i < 6; i++) {
+      const inset = i * Math.min(w, h) * 0.035;
+      this.hurt.rect(inset, inset, w - inset * 2, h - inset * 2).stroke({ width: Math.min(w, h) * 0.035, color: 0xff1a1a, alpha: 0.32 - i * 0.05 });
+    }
+    this.hurt.alpha = 0;
+    this.weapon.layout(w, h);
 
-    const tex = this.boss.texture;
+    const tex = this.boss.stages[0];
     // Fit the boss into the upper ~60% of the stage, leaving room for the HUD below.
     this.baseScale = Math.min((w * 0.86) / tex.width, (h * 0.58) / tex.height);
     this.bossY = h * 0.42;
@@ -451,7 +713,7 @@ export class RaidScene {
     const lvl = this.windupLevel;
     this.aura.clear();
     if (lvl < 0.02) return;
-    const r = (this.boss.texture.height * this.baseScale * this.shownScale) * (0.45 + pulse * 0.05);
+    const r = this.bossSprite.texture.height * this.baseScale * this.shownScale * (0.45 + pulse * 0.05);
     for (let i = 0; i < 4; i++) {
       this.aura.circle(0, 10, r * (1 + i * 0.12)).fill({ color: 0xff2a1f, alpha: 0.07 * lvl });
     }
@@ -599,7 +861,7 @@ export class RaidScene {
 
   /** Slices the boss sprite into fragments that fly apart. */
   private shatter() {
-    const tex = this.boss.texture;
+    const tex = this.bossSprite.texture;
     const cols = 7;
     const rows = 9;
     const fw = tex.frame.width / cols;

@@ -4,6 +4,8 @@ import type { BossDef, BossKind } from './types';
 interface BossArt {
   /** Painted sprite, cut out by tools/cutout.py. Custom bosses use a drawn stand-in. */
   sprite?: string;
+  /** Damage stages 2–4, when their art exists. */
+  stages?: string[];
   /** Painted 9:16 arena behind the boss. */
   arena?: string;
   material: number[];
@@ -32,17 +34,31 @@ export function bossMaterial(boss: BossDef) {
   return ART[boss.kind].material;
 }
 
-/** The boss's painted sprite, or a drawn stand-in until its art exists. */
-export async function loadBossTexture(boss: BossDef): Promise<Texture> {
-  const url = ART[boss.kind].sprite;
-  if (url) {
-    try {
-      return await Assets.load<Texture>(url);
-    } catch (err) {
-      console.warn('Boss art failed to load, using a stand-in', err);
-    }
-  }
-  return Texture.from(placeholderCanvas(boss.hue));
+/** Painted first-person weapon, once its art is in. */
+export const WEAPON_ART: string | undefined = undefined;
+
+/**
+ * The boss's damage-stage textures, healthiest first. Missing stages are simply
+ * skipped; with no art at all, a drawn stand-in tinted to the boss's hue.
+ */
+export async function loadBossStages(boss: BossDef): Promise<Texture[]> {
+  const art = ART[boss.kind];
+  const urls = art.sprite ? [art.sprite, ...(art.stages ?? [])] : [];
+  const loaded = await Promise.all(
+    urls.map((u) =>
+      Assets.load<Texture>(u).catch((err) => {
+        console.warn('Boss art failed to load', u, err);
+        return undefined;
+      }),
+    ),
+  );
+  const stages = loaded.filter((t): t is Texture => !!t);
+  return stages.length ? stages : [Texture.from(placeholderCanvas(boss.hue))];
+}
+
+export async function loadWeapon(): Promise<Texture | undefined> {
+  if (!WEAPON_ART) return undefined;
+  return Assets.load<Texture>(WEAPON_ART).catch(() => undefined);
 }
 
 /** The boss's painted arena, decoded and ready to draw, or undefined if it has none. */

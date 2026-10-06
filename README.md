@@ -48,9 +48,15 @@ Your eyes are on the laundry, not the phone, so the game is audio-first:
 - **Screen stays awake** during a raid (Wake Lock API, with a tip where it isn't supported).
 - **Resume after reload:** a locked phone or an accidental swipe never loses a 40-item pile.
 
-## Game feel
+## A real fight, not a counter
 
-The raid is a WebGL scene (PixiJS) over a painted boss: hit-stop on every strike, a white flash, squash-and-stretch, screen shake that scales with the combo, impact particles made of the boss's material, floating damage numbers, a red aura during wind-ups, and on death the boss shatters into pieces.
+Your hands are full of laundry, so the input is one tap (or one word), but every tap is a real attack in a first-person fight (PixiJS, WebGL):
+
+- **Your weapon, the Broomblade,** swings in first person: slash, backslash, thrust, overhead smash, cycling so no two hits in a row look the same. Each strike leaves a slash trail across the boss, with hit-stop, flash, screen shake and debris made of the boss's own material.
+- **Combos unlock specials:** at ×3, lightning strikes the boss; at ×4, an ultimate X-slash in slow motion.
+- **The boss fights back.** Stall for too long and it lunges at you: the screen shakes, claw marks rake across it, and your phone buzzes. Hit back right after for a **COUNTER**. (It's all cosmetic: HP never changes except by finishing items.)
+- **Wind-ups are boss charge attacks.** Finish the items in time to **PARRY** for a critical; miss and it lands the blow and heals its Ward.
+- **The boss breaks apart as you work:** each boss has damage stages, and the last item triggers a **finisher**: a spinning double slash, then the boss shatters.
 
 ## How AI was used
 

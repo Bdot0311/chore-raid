@@ -8,6 +8,8 @@ import { unitWord } from './bosses';
 
 interface LineBank {
   start: string[];
+  /** Said when the boss lashes out because you stalled. */
+  attack: string[];
   windup: string[];
   beaten: string[];
   missed: string[];
@@ -23,6 +25,7 @@ const BANKS: Record<BossKind, LineBank> = {
       'The Leviathan rises from the hamper. It is unimpressed.',
       'You have disturbed the Laundry Leviathan. It was napping on your chair.',
     ],
+    attack: ['The Leviathan slaps you with a wet sleeve. Keep folding.', 'The Leviathan lunges. It smells faintly of fabric softener.'],
     windup: [
       'The Leviathan coils. {n} {units} in {s} seconds, or it grows a fresh sock.',
       'The Leviathan is regrowing. Fold {n} {units} in {s} seconds.',
@@ -37,6 +40,7 @@ const BANKS: Record<BossKind, LineBank> = {
       'The Sink Hydra stirs beneath the suds. It has been waiting since Tuesday.',
       'The Sink Hydra awakens. Every fork is a tooth.',
     ],
+    attack: ['The Hydra spits dishwater at you. Keep scrubbing.', 'A plate head snaps at you. Rude.'],
     windup: [
       'The Hydra regrows a head. {n} {units} in {s} seconds.',
       'The Hydra gathers grease. Clean {n} {units} in {s} seconds.',
@@ -51,6 +55,7 @@ const BANKS: Record<BossKind, LineBank> = {
       'The Clutter Golem assembles itself. It is mostly cables.',
       'The Clutter Golem stands. It has been standing there for weeks. You just noticed.',
     ],
+    attack: ['The Golem swings a mug at you. Keep tidying.', 'The Golem throws a cable. It is tangled. Of course it is.'],
     windup: [
       'The Golem gathers more junk. {n} {units} in {s} seconds.',
       'The Golem reinforces itself. Put away {n} {units} in {s} seconds.',
@@ -62,6 +67,7 @@ const BANKS: Record<BossKind, LineBank> = {
   },
   custom: {
     start: ['A Mess Elemental appears. It is exactly as annoying as expected.', 'The Mess Elemental awakens. It has no opinion of you.'],
+    attack: ['The Elemental lashes out. Keep going.', 'The mess pushes back. Push harder.'],
     windup: ['The Elemental swells. {n} {units} in {s} seconds.', 'The mess is spreading. {n} {units} in {s} seconds.'],
     beaten: ['Critical. The Elemental shrinks noticeably.', 'Critical. The mess loses ground.'],
     missed: ['The Elemental heals. The mess has opinions after all.', 'Too slow. The Elemental restores its Ward.'],
@@ -80,6 +86,7 @@ export const lines = {
   windup: (boss: BossDef, target: number, seconds: number) =>
     fill(pick(BANKS[boss.kind].windup), { n: target, units: unitWord(boss, target), s: seconds }),
   beaten: (boss: BossDef) => pick(BANKS[boss.kind].beaten),
+  attack: (boss: BossDef) => pick(BANKS[boss.kind].attack),
   missed: (boss: BossDef) => pick(BANKS[boss.kind].missed),
   death: (boss: BossDef) => pick(BANKS[boss.kind].death),
   combo: (multiplier: number) => ({ 2: 'Combo.', 3: 'Triple.', 4: 'Unstoppable.' })[multiplier] ?? '',
