@@ -7,22 +7,29 @@ import {
   getRaid,
   loadBosses,
   loadProfile,
-  recordWin,
+  attachPhoto,
+  finishRaid,
+  saveCustomBoss,
   saveProfile,
   startRaid,
 } from './game/store';
 import { BUILT_IN_BOSSES } from './game/bosses';
-import type { BossDef, Profile, Raid, Settings } from './game/types';
+import type { BossDef, LootItem, Profile, Raid, Settings } from './game/types';
+import { savePhoto } from './lib/photos';
 import { BossSetup } from './ui/BossSetup';
+import { CustomBossForm } from './ui/CustomBossForm';
 import { Hub } from './ui/Hub';
 import { RaidScreen } from './ui/RaidScreen';
+import { TrophyRoom } from './ui/TrophyRoom';
 import { Victory } from './ui/Victory';
 
 type Screen =
   | { name: 'hub' }
   | { name: 'setup'; boss: BossDef }
   | { name: 'raid'; boss: BossDef; raid: Raid }
-  | { name: 'victory'; boss: BossDef; raid: Raid };
+  | { name: 'victory'; boss: BossDef; raid: Raid; loot: LootItem }
+  | { name: 'trophies' }
+  | { name: 'summon' };
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -67,6 +74,8 @@ export default function App() {
           profile={profile}
           activeRaid={activeRaid}
           onPick={(boss) => setScreen({ name: 'setup', boss })}
+          onTrophies={() => setScreen({ name: 'trophies' })}
+          onSummon={() => setScreen({ name: 'summon' })}
           onResume={async (raid) => {
             unlockAudio();
             // Re-read in case another tab moved it on.
@@ -88,9 +97,17 @@ export default function App() {
           settings={profile.settings}
           onSettings={updateSettings}
           onBack={goHub}
-          onBegin={async (count) => {
+          onBegin={async (count, beforePhoto) => {
             unlockAudio();
-            const raid = await startRaid(screen.boss.id, count);
+            let raid = await startRaid(screen.boss.id, count);
+            if (beforePhoto) {
+              try {
+                const photo = await savePhoto(beforePhoto, raid.id);
+                raid = (await attachPhoto(raid.id, 'beforePhotoId', photo.id)) ?? raid;
+              } catch (err) {
+                console.warn('Before photo could not be saved', err);
+              }
+            }
             setScreen({ name: 'raid', boss: screen.boss, raid });
           }}
         />
@@ -104,13 +121,38 @@ export default function App() {
           settings={profile.settings}
           onSettings={updateSettings}
           onLeave={goHub}
-          onWin={async (raid) => {
-            setProfile(await recordWin(raid));
-            setScreen({ name: 'victory', boss: screen.boss, raid });
+          onWin={async (won) => {
+            const { raid, loot, profile: p } = await finishRaid(won, screen.boss);
+            setProfile(p);
+            setScreen({ name: 'victory', boss: screen.boss, raid, loot });
           }}
         />
       );
     case 'victory':
-      return <Victory boss={screen.boss} raid={screen.raid} onDone={goHub} />;
+      return (
+        <Victory
+          boss={screen.boss}
+          raid={screen.raid}
+          loot={screen.loot}
+          onAfterPhoto={async (file) => {
+            const photo = await savePhoto(file, screen.raid.id);
+            return (await attachPhoto(screen.raid.id, 'afterPhotoId', photo.id)) ?? screen.raid;
+          }}
+          onDone={goHub}
+        />
+      );
+    case 'trophies':
+      return <TrophyRoom bosses={bosses} onBack={goHub} />;
+    case 'summon':
+      return (
+        <CustomBossForm
+          onBack={goHub}
+          onCreate={async (boss) => {
+            await saveCustomBoss(boss);
+            setBosses((b) => [...b, boss]);
+            setScreen({ name: 'setup', boss });
+          }}
+        />
+      );
   }
 }

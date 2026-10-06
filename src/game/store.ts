@@ -2,7 +2,8 @@ import * as db from '../lib/db';
 import { newId } from '../lib/id';
 import { BUILT_IN_BOSSES } from './bosses';
 import { createRaid } from './raidReducer';
-import type { BossDef, Profile, Raid } from './types';
+import { rollLoot } from './loot';
+import type { BossDef, LootItem, Profile, Raid } from './types';
 
 const PROFILE_KEY = 'me';
 
@@ -55,8 +56,19 @@ export async function abandonRaid(raid: Raid) {
   await db.put('raids', { ...raid, status: 'abandoned', endedAt: Date.now() });
 }
 
-/** Called once when a raid is won: credits the lifetime totals. */
-export async function recordWin(raid: Raid): Promise<Profile> {
+/**
+ * Called once when a raid is won: rolls the loot from the raid's Loot Stars,
+ * links it to the raid and credits the lifetime totals. Safe to call twice:
+ * a raid that already has loot keeps it.
+ */
+export async function finishRaid(raid: Raid, boss: BossDef): Promise<{ raid: Raid; loot: LootItem; profile: Profile }> {
+  const existing = raid.lootId ? await db.get('loot', raid.lootId) : undefined;
+  if (existing) return { raid, loot: existing, profile: await loadProfile() };
+
+  const loot = rollLoot(boss.kind, raid.lootStars, raid.id, newId(), Date.now());
+  const done: Raid = { ...raid, lootId: loot.id };
+  await db.put('loot', loot);
+  await db.put('raids', done);
   const profile = await loadProfile();
   const next: Profile = {
     ...profile,
@@ -64,5 +76,25 @@ export async function recordWin(raid: Raid): Promise<Profile> {
     raidsWon: profile.raidsWon + 1,
   };
   await saveProfile(next);
+  return { raid: done, loot, profile: next };
+}
+
+export async function attachPhoto(raidId: string, which: 'beforePhotoId' | 'afterPhotoId', photoId: string) {
+  const raid = await db.get('raids', raidId);
+  if (!raid) return undefined;
+  const next = { ...raid, [which]: photoId };
+  await db.put('raids', next);
   return next;
+}
+
+export async function loadTrophies() {
+  const [loot, raids] = await Promise.all([db.getAll('loot'), db.getAllByIndex('raids', 'status', 'won')]);
+  return {
+    loot: loot.sort((a, b) => b.earnedAt - a.earnedAt),
+    raids: raids.sort((a, b) => (b.endedAt ?? 0) - (a.endedAt ?? 0)),
+  };
+}
+
+export async function saveCustomBoss(boss: BossDef) {
+  await db.put('bosses', boss);
 }

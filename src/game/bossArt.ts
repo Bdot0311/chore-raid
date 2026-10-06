@@ -74,3 +74,10 @@ function placeholderCanvas(hue: number) {
   g.stroke();
   return c;
 }
+
+export function bossSpriteUrl(boss: BossDef): string | undefined {
+  return ART[boss.kind].sprite;
+}
+
+/** Painted treasure chest, once its art is in. */
+export const CHEST_ART: string | undefined = undefined;

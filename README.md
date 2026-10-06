@@ -8,6 +8,8 @@ The boss dies exactly when the chore is done.
 
 Built for the Hackyard build week (theme: Gamification), Oct 5–9, 2026.
 
+**Play it:** https://choreraid.netlify.app (best on a phone)
+
 **Status:** in development. See [PLAN.md](PLAN.md) for the build plan.
 
 ## Run it locally

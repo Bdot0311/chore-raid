@@ -1,14 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { voiceSupported } from '../audio/voice';
 import { unitWord } from '../game/bosses';
 import { MAX_HP } from '../game/tuning';
 import type { BossDef, Settings } from '../game/types';
+import { PhotoCapture } from './PhotoCapture';
 
 interface Props {
   boss: BossDef;
   settings: Settings;
   onSettings: (s: Settings) => void;
-  onBegin: (count: number) => void;
+  onBegin: (count: number, beforePhoto?: File) => void;
   onBack: () => void;
 }
 
@@ -40,6 +41,14 @@ export function BossSetup({ boss, settings, onSettings, onBegin, onBack }: Props
   const stepBtn =
     'h-16 w-16 rounded-2xl bg-gradient-to-b from-dungeon-600 to-dungeon-800 text-3xl font-bold text-bone shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_4px_0_#0d0b1a] active:translate-y-1 active:shadow-none transition';
   const accent = `hsl(${boss.hue} 80% 70%)`;
+  const [before, setBefore] = useState<File>();
+  const [preview, setPreview] = useState<string>();
+  useEffect(() => {
+    if (!before) return;
+    const url = URL.createObjectURL(before);
+    setPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [before]);
 
   return (
     <div
@@ -100,10 +109,25 @@ export function BossSetup({ boss, settings, onSettings, onBegin, onBack }: Props
           )}
         </div>
 
+        <div className="flex items-center gap-3 rounded-2xl bg-dungeon-900/80 p-3 ring-1 ring-white/10">
+          <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-xl bg-black/40 text-2xl">
+            {preview ? <img src={preview} alt="Before" className="h-full w-full object-cover" /> : '📷'}
+          </div>
+          <div className="min-w-0 flex-1 text-left">
+            <p className="font-semibold">Before photo</p>
+            <p className="text-xs text-ash">Proof of the mess. It goes on your win card.</p>
+          </div>
+          <PhotoCapture
+            label={before ? 'Retake' : 'Snap'}
+            className="rounded-xl bg-dungeon-700 px-4 py-2 font-bold text-bone active:scale-95"
+            onPhoto={(file) => setBefore(file)}
+          />
+        </div>
+
         <div className="mt-auto pb-2">
           <button
             className="w-full rounded-2xl bg-gradient-to-b from-[#ff8a5c] to-ember py-5 font-display text-2xl tracking-wide text-dungeon-950 shadow-[inset_0_2px_0_rgba(255,255,255,0.4),0_6px_0_#a8391a,0_12px_30px_rgba(255,107,61,0.35)] transition active:translate-y-1.5 active:shadow-[inset_0_2px_0_rgba(255,255,255,0.4),0_0_0_#a8391a]"
-            onClick={() => onBegin(count)}
+            onClick={() => onBegin(count, before)}
           >
             BEGIN RAID
           </button>
