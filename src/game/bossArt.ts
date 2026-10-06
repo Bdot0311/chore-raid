@@ -2,18 +2,29 @@ import { Assets, Texture } from 'pixi.js';
 import type { BossDef, BossKind } from './types';
 
 interface BossArt {
-  /** Painted sprite, cut out by tools/cutout.py. Missing until that boss's art is in. */
+  /** Painted sprite, cut out by tools/cutout.py. Custom bosses use a drawn stand-in. */
   sprite?: string;
+  /** Painted 9:16 arena behind the boss. */
+  arena?: string;
   material: number[];
 }
 
 const ART: Record<BossKind, BossArt> = {
   laundry: {
     sprite: '/art/laundry-1.webp',
+    arena: '/art/arena-laundry.webp',
     material: [0x34428f, 0xc23b3b, 0xe8e2d0, 0xe39b2d, 0x7a3fb0, 0x5b7f3a, 0xd94f8a],
   },
-  dishes: { material: [0xe9f6ff, 0x8fd3e8, 0x3aa7c9, 0xffffff, 0xc9b28a] },
-  clutter: { material: [0xd98b3a, 0x8a5a2b, 0x3b3b3b, 0xc94f2f, 0xe6d3a3] },
+  dishes: {
+    sprite: '/art/dishes-1.webp',
+    arena: '/art/arena-dishes.webp',
+    material: [0xe9f6ff, 0x8fd3e8, 0x3aa7c9, 0xffffff, 0xc9a06a, 0x6f8fa8],
+  },
+  clutter: {
+    sprite: '/art/clutter-1.webp',
+    arena: '/art/arena-clutter.webp',
+    material: [0xd98b3a, 0x8a5a2b, 0x3b5b8f, 0xc94f2f, 0xe6d3a3, 0xf2a03d],
+  },
   custom: { material: [0xbfbfbf, 0x8c8c8c, 0xe0e0e0] },
 };
 
@@ -32,6 +43,20 @@ export async function loadBossTexture(boss: BossDef): Promise<Texture> {
     }
   }
   return Texture.from(placeholderCanvas(boss.hue));
+}
+
+/** The boss's painted arena, decoded and ready to draw, or undefined if it has none. */
+export async function loadArena(boss: BossDef): Promise<HTMLImageElement | undefined> {
+  const url = ART[boss.kind].arena;
+  if (!url) return undefined;
+  const img = new Image();
+  img.src = url;
+  try {
+    await img.decode();
+    return img;
+  } catch {
+    return undefined;
+  }
 }
 
 function placeholderCanvas(hue: number) {
@@ -80,4 +105,4 @@ export function bossSpriteUrl(boss: BossDef): string | undefined {
 }
 
 /** Painted treasure chest, once its art is in. */
-export const CHEST_ART: string | undefined = undefined;
+export const CHEST_ART: string | undefined = '/art/chest.webp';

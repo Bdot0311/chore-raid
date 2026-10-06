@@ -20,6 +20,8 @@ import {
 export interface SceneBoss {
   hue: number;
   texture: Texture;
+  /** Painted arena background; a gradient is drawn when absent. */
+  arena?: HTMLImageElement;
   /** Particle colors: the boss's material (fabric scraps, suds, splinters). */
   material: number[];
 }
@@ -395,10 +397,28 @@ export class RaidScene {
 
   private gradientTexture(w: number, h: number) {
     const c = document.createElement('canvas');
-    c.width = Math.max(1, Math.round(w / 2));
-    c.height = Math.max(1, Math.round(h / 2));
+    // A smooth gradient survives half resolution; a painted arena needs more.
+    const res = this.boss.arena ? Math.min(2, window.devicePixelRatio || 1) : 0.5;
+    c.width = Math.max(1, Math.round(w * res));
+    c.height = Math.max(1, Math.round(h * res));
     const g = c.getContext('2d')!;
     const hue = this.boss.hue;
+    const arena = this.boss.arena;
+    if (arena) {
+      // Cover-fit the painting, then darken the top and bottom so the HUD stays readable.
+      const s = Math.max(c.width / arena.width, c.height / arena.height);
+      const dw = arena.width * s;
+      const dh = arena.height * s;
+      g.drawImage(arena, (c.width - dw) / 2, (c.height - dh) / 2, dw, dh);
+      const shade = g.createLinearGradient(0, 0, 0, c.height);
+      shade.addColorStop(0, 'rgba(7,6,15,0.75)');
+      shade.addColorStop(0.22, 'rgba(7,6,15,0.15)');
+      shade.addColorStop(0.62, 'rgba(7,6,15,0.1)');
+      shade.addColorStop(1, 'rgba(7,6,15,0.85)');
+      g.fillStyle = shade;
+      g.fillRect(0, 0, c.width, c.height);
+      return Texture.from(c);
+    }
     const grad = g.createRadialGradient(c.width / 2, c.height * 0.4, 10, c.width / 2, c.height * 0.45, c.height * 0.75);
     grad.addColorStop(0, `hsl(${hue} 45% 22%)`);
     grad.addColorStop(0.45, `hsl(${hue} 40% 11%)`);

@@ -13,7 +13,7 @@ from PIL import Image
 from scipy import ndimage
 
 
-def cutout(img: Image.Image, hard: float, soft: float) -> Image.Image:
+def cutout(img: Image.Image, hard: float, soft: float, holes: bool = False) -> Image.Image:
     rgb = np.asarray(img.convert("RGB")).astype(np.float32)
     h, w, _ = rgb.shape
 
@@ -26,6 +26,16 @@ def cutout(img: Image.Image, hard: float, soft: float) -> Image.Image:
     labels, _ = ndimage.label(near)
     edge_labels = np.unique(np.concatenate([labels[0], labels[-1], labels[:, 0], labels[:, -1]]))
     background = np.isin(labels, edge_labels[edge_labels > 0])
+
+    # Gaps enclosed by the character (between a hydra's necks) don't touch the border,
+    # so also clear large blobs that match the background very closely.
+    if holes:
+        tight = dist < hard * 0.5
+        hl, n = ndimage.label(tight & ~background)
+        if n:
+            sizes = ndimage.sum(np.ones_like(dist), hl, range(1, n + 1))
+            big = np.flatnonzero(sizes > h * w * 0.0006) + 1
+            background |= ndimage.binary_dilation(np.isin(hl, big), iterations=1) & near
 
     alpha = np.ones((h, w), np.float32)
     alpha[background] = 0
@@ -51,9 +61,10 @@ def main():
     p.add_argument("--hard", type=float, default=26)
     p.add_argument("--soft", type=float, default=70)
     p.add_argument("--pad", type=int, default=16)
+    p.add_argument("--holes", action="store_true", help="also clear background-colored gaps enclosed by the character")
     args = p.parse_args()
 
-    sprite = cutout(Image.open(args.src), args.hard, args.soft)
+    sprite = cutout(Image.open(args.src), args.hard, args.soft, args.holes)
     x0, y0, x1, y1 = sprite.getbbox()
     sprite = sprite.crop((max(0, x0 - args.pad), max(0, y0 - args.pad), x1 + args.pad, y1 + args.pad))
     sprite.thumbnail((args.max, args.max), Image.LANCZOS)

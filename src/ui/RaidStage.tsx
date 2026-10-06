@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
-import { bossMaterial, loadBossTexture } from '../game/bossArt';
+import { bossMaterial, loadArena, loadBossTexture } from '../game/bossArt';
 import type { BossDef } from '../game/types';
 import { RaidScene } from '../scene/RaidScene';
 
@@ -19,9 +19,9 @@ export const RaidStage = forwardRef<StageHandle, Props>(function RaidStage({ bos
     const s = new RaidScene();
     scene.current = s;
     let cancelled = false;
-    void loadBossTexture(boss).then((texture) => {
+    void Promise.all([loadBossTexture(boss), loadArena(boss)]).then(([texture, arena]) => {
       if (cancelled || !host.current) return;
-      return s.init(host.current, { hue: boss.hue, texture, material: bossMaterial(boss) });
+      return s.init(host.current, { hue: boss.hue, texture, arena, material: bossMaterial(boss) });
     });
     return () => {
       cancelled = true;
