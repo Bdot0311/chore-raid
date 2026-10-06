@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { unlockAudio } from './audio/unlock';
 import {
   DEFAULT_PROFILE,
   abandonRaid,
@@ -7,10 +8,11 @@ import {
   loadBosses,
   loadProfile,
   recordWin,
+  saveProfile,
   startRaid,
 } from './game/store';
 import { BUILT_IN_BOSSES } from './game/bosses';
-import type { BossDef, Profile, Raid } from './game/types';
+import type { BossDef, Profile, Raid, Settings } from './game/types';
 import { BossSetup } from './ui/BossSetup';
 import { Hub } from './ui/Hub';
 import { RaidScreen } from './ui/RaidScreen';
@@ -49,6 +51,12 @@ export default function App() {
 
   const bossFor = (raid: Raid) => bosses.find((b) => b.id === raid.bossId);
 
+  const updateSettings = (settings: Settings) => {
+    const next = { ...profile, settings };
+    setProfile(next);
+    void saveProfile(next);
+  };
+
   if (!ready) return null;
 
   switch (screen.name) {
@@ -60,6 +68,7 @@ export default function App() {
           activeRaid={activeRaid}
           onPick={(boss) => setScreen({ name: 'setup', boss })}
           onResume={async (raid) => {
+            unlockAudio();
             // Re-read in case another tab moved it on.
             const fresh = (await getRaid(raid.id)) ?? raid;
             const boss = bossFor(fresh);
@@ -76,8 +85,11 @@ export default function App() {
       return (
         <BossSetup
           boss={screen.boss}
+          settings={profile.settings}
+          onSettings={updateSettings}
           onBack={goHub}
           onBegin={async (count) => {
+            unlockAudio();
             const raid = await startRaid(screen.boss.id, count);
             setScreen({ name: 'raid', boss: screen.boss, raid });
           }}
@@ -89,6 +101,8 @@ export default function App() {
           key={screen.raid.id}
           boss={screen.boss}
           initial={screen.raid}
+          settings={profile.settings}
+          onSettings={updateSettings}
           onLeave={goHub}
           onWin={async (raid) => {
             setProfile(await recordWin(raid));

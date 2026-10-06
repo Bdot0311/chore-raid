@@ -27,10 +27,15 @@ export interface Hit {
   undone?: boolean;
 }
 
+/** A boss wind-up: finish `target` items before `deadline` or the boss heals its Ward. */
 export interface Windup {
   startedAt: number;
+  deadline: number;
   target: number;
-  beaten: boolean;
+  progress: number;
+  /** Undefined while the wind-up is still running. */
+  beaten?: boolean;
+  resolvedAt?: number;
 }
 
 export interface Raid {
@@ -48,6 +53,8 @@ export interface Raid {
   bestCombo: number;
   lootStars: number;
   windups: Windup[];
+  /** HP values at which a wind-up starts, rolled when the raid begins. */
+  windupAtHp: number[];
   beforePhotoId?: string;
   afterPhotoId?: string;
   lootId?: string;

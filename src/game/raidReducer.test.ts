@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { createRaid, raidReducer, type RaidAction } from './raidReducer';
-import { COMBO_WINDOW_MS, HIT_COOLDOWN_MS } from './tuning';
+import { activeWindup, createRaid, planWindups, raidReducer, type RaidAction } from './raidReducer';
+import { COMBO_WINDOW_MS, HIT_COOLDOWN_MS, STARTING_LOOT_STARS, WINDUP_MS_PER_ITEM } from './tuning';
 import type { Raid } from './types';
 
 const HIT: RaidAction = { type: 'HIT', source: 'tap' };
@@ -94,5 +94,49 @@ describe('raidReducer', () => {
   it('undo with no hits is a no-op', () => {
     const raid = createRaid('r', 'laundry', 10, 0);
     expect(raidReducer(raid, { type: 'UNDO' }, 0).raid).toBe(raid);
+  });
+});
+
+describe('wind-ups', () => {
+  const half = () => 0.5;
+
+  it('plans wind-ups every 25-35% and never in the last 3 items', () => {
+    expect(planWindups(4)).toEqual([]);
+    expect(planWindups(20, half)).toEqual([14, 8]);
+    for (let n = 5; n < 200; n++) {
+      const at = planWindups(n);
+      for (const hp of at) expect(hp).toBeGreaterThan(3);
+      for (let i = 1; i < at.length; i++) expect(at[i - 1] - at[i]).toBeGreaterThanOrEqual(4);
+    }
+  });
+
+  it('starts a wind-up at the planned HP and pays out when beaten in time', () => {
+    const { raid: r, t } = hitN(createRaid('r', 'dishes', 20, 0, half), 6, 0);
+    expect(r.hp).toBe(14);
+    const w = activeWindup(r)!;
+    expect(w.target).toBe(3);
+    expect(w.deadline).toBe(5000 + 3 * WINDUP_MS_PER_ITEM);
+    const scoreBefore = r.score;
+    const { raid } = hitN(r, 3, t, 5000);
+    expect(activeWindup(raid)).toBeUndefined();
+    expect(raid.windups[0].beaten).toBe(true);
+    expect(raid.lootStars).toBe(STARTING_LOOT_STARS + 1);
+    expect(raid.score).toBeGreaterThan(scoreBefore + 150);
+    expect(raid.hp).toBe(11);
+  });
+
+  it('a missed wind-up costs a Loot Star but never HP', () => {
+    const { raid } = hitN(createRaid('r', 'dishes', 20, 0, half), 6, 0);
+    const res = raidReducer(raid, { type: 'TICK' }, 5000 + 3 * WINDUP_MS_PER_ITEM + 1);
+    expect(res.events).toContainEqual({ type: 'windup-missed', lootStars: STARTING_LOOT_STARS - 1 });
+    expect(res.raid.hp).toBe(14);
+    expect(res.raid.windups[0].beaten).toBe(false);
+  });
+
+  it('undo inside a wind-up takes back its progress', () => {
+    let { raid, t } = hitN(createRaid('r', 'dishes', 20, 0, half), 7, 0);
+    expect(activeWindup(raid)!.progress).toBe(1);
+    raid = raidReducer(raid, { type: 'UNDO' }, t).raid;
+    expect(activeWindup(raid)!.progress).toBe(0);
   });
 });
