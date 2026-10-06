@@ -14,16 +14,19 @@ interface BossArt {
 const ART: Record<BossKind, BossArt> = {
   laundry: {
     sprite: '/art/laundry-1.webp',
+    stages: ['/art/laundry-2.webp', '/art/laundry-3.webp', '/art/laundry-4.webp'],
     arena: '/art/arena-laundry.webp',
     material: [0x34428f, 0xc23b3b, 0xe8e2d0, 0xe39b2d, 0x7a3fb0, 0x5b7f3a, 0xd94f8a],
   },
   dishes: {
     sprite: '/art/dishes-1.webp',
+    stages: ['/art/dishes-2.webp', '/art/dishes-3.webp', '/art/dishes-4.webp'],
     arena: '/art/arena-dishes.webp',
     material: [0xe9f6ff, 0x8fd3e8, 0x3aa7c9, 0xffffff, 0xc9a06a, 0x6f8fa8],
   },
   clutter: {
     sprite: '/art/clutter-1.webp',
+    stages: ['/art/clutter-2.webp', '/art/clutter-3.webp', '/art/clutter-4.webp'],
     arena: '/art/arena-clutter.webp',
     material: [0xd98b3a, 0x8a5a2b, 0x3b5b8f, 0xc94f2f, 0xe6d3a3, 0xf2a03d],
   },
@@ -35,7 +38,7 @@ export function bossMaterial(boss: BossDef) {
 }
 
 /** Painted first-person weapon, once its art is in. */
-export const WEAPON_ART: string | undefined = undefined;
+export const WEAPON_ART: string | undefined = '/art/weapon.webp';
 
 /**
  * The boss's damage-stage textures, healthiest first. Missing stages are simply

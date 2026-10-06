@@ -59,7 +59,7 @@ export class Weapon {
     const tex = art ?? drawBroomblade(renderer);
     this.sprite = new Sprite(tex);
     // The grip sits near the bottom-right corner of the art; rotate around it.
-    this.sprite.anchor.set(art ? 0.82 : 0.9, art ? 0.9 : 0.92);
+    this.sprite.anchor.set(art ? 0.8 : 0.9, art ? 0.94 : 0.92);
     this.root.addChild(this.sprite);
   }
 
@@ -67,7 +67,7 @@ export class Weapon {
     this.w = w;
     this.h = h;
     const tex = this.sprite.texture;
-    this.baseScale = Math.min(h * 0.42, w * 0.95) / tex.height;
+    this.baseScale = Math.min(h * 0.46, w * 1.0) / tex.height;
   }
 
   /** Picks the next move in the cycle unless one is forced. */
