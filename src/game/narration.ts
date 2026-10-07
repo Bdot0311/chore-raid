@@ -12,22 +12,22 @@ import { allBossSentences } from './speechLines';
 export const STORY_PANELS = [
   {
     art: '/art/story-1.webp',
-    text: 'One ordinary evening, the Mess King moved in. Nobody invited him. He brought laundry.',
+    text: 'Hear now a tale. One ordinary evening, the Mess King moved into your home. Nobody invited him. He brought laundry.',
   },
   {
     art: '/art/story-2.webp',
-    text: 'Every home has a hero. In the hall closet, under three coats and a lost umbrella, the Broomblade was waiting. For you.',
+    text: 'But every home has a hero. In the hall closet, beneath three coats and a lost umbrella, a weapon lay waiting. For you.',
   },
   {
     art: '/art/world-map.webp',
-    text: 'Three lairs. Three bosses. One very messy home. Win them back, and the Mess King has nowhere left to sit.',
+    text: 'Three lairs. Three bosses. One very messy kingdom. Win them back, and the Mess King shall have nowhere left to sit.',
   },
 ];
 
 export const MAX_SPOKEN_LEVEL = 50;
 
 export const say = {
-  welcome: 'Welcome, hero. The Laundry Lair is first. Probably.',
+  welcome: 'Welcome, hero. Your quest begins in the Laundry Lair. Probably.',
   step: (title: string, instruction: string) => `${title}. ${instruction}`,
   cycleDone: 'The machine is finished. Back to the quest.',
   levelCleared: 'Level cleared. Take a breath. Then the next one.',

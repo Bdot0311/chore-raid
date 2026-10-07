@@ -48,6 +48,18 @@ class Sfx {
     this.applyGain();
   }
 
+  /**
+   * Waits (briefly) for audio to be running: right after the first tap the
+   * context is still resuming, and the narrator should wait, not fall back.
+   */
+  async voiceReady(timeoutMs = 1500): Promise<{ ctx: AudioContext; out: GainNode } | undefined> {
+    if (!this.ctx) return undefined;
+    if (this.ctx.state !== 'running') {
+      await Promise.race([this.ctx.resume().catch(() => undefined), new Promise((r) => window.setTimeout(r, timeoutMs))]);
+    }
+    return this.voiceOut();
+  }
+
   /** The narrator's output: follows the volume setting but is never ducked. */
   voiceOut(): { ctx: AudioContext; out: GainNode } | undefined {
     if (!this.ctx || this.ctx.state !== 'running') return undefined;

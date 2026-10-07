@@ -21,6 +21,16 @@ interface Pending {
 type Listener = (speaking: boolean) => void;
 
 const RECORDED = new Set<string>(manifest);
+
+/**
+ * Clips are decoded offline, so they can load before the first tap unlocks
+ * audio. A decoded buffer plays on any context.
+ */
+let decoder: BaseAudioContext | undefined;
+function decodeContext(): BaseAudioContext | undefined {
+  if (!decoder && typeof OfflineAudioContext !== 'undefined') decoder = new OfflineAudioContext(1, 1, 24000);
+  return decoder;
+}
 /** A breath between recorded sentences. */
 const GAP_S = 0.22;
 
@@ -97,10 +107,7 @@ class Speech {
     if (!p) {
       p = fetch(`/voice/${key}.mp3`)
         .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(String(r.status)))))
-        .then((data) => {
-          const out = sfx.voiceOut();
-          return out ? out.ctx.decodeAudioData(data) : undefined;
-        })
+        .then((data) => decodeContext()?.decodeAudioData(data))
         .catch(() => undefined);
       // A failed fetch (offline, not unlocked yet) can be retried next time.
       p.then((b) => {
@@ -113,11 +120,13 @@ class Speech {
 
   private pickVoice() {
     const voices = speechSynthesis.getVoices().filter((v) => /^en/i.test(v.lang));
-    // The fallback voice: the most natural one the device has.
+    // The fallback voice: a British storyteller if the device has one.
+    const gb = voices.filter((v) => /en-GB/i.test(v.lang));
     this.voice =
+      gb.find((v) => /natural|neural|premium|enhanced/i.test(v.name)) ??
+      gb.find((v) => /daniel|arthur|george|ryan|male/i.test(v.name)) ??
+      gb[0] ??
       voices.find((v) => /natural|neural|premium|enhanced/i.test(v.name)) ??
-      voices.find((v) => /google us english|samantha|ava|allison|aria|jenny/i.test(v.name)) ??
-      voices.find((v) => /en-US/i.test(v.lang)) ??
       voices[0];
   }
 
@@ -129,9 +138,8 @@ class Speech {
     const gen = this.generation;
     const parts = sentences(next.text);
     const keys = parts.map(clipKey);
-    const recorded = sfx.voiceOut() && keys.every((k) => RECORDED.has(k));
     let ok = false;
-    if (recorded) ok = await this.playClips(keys, gen);
+    if (keys.every((k) => RECORDED.has(k)) && (await sfx.voiceReady()) && gen === this.generation) ok = await this.playClips(keys, gen);
     if (gen !== this.generation) return;
     if (!ok) await this.speakDevice(next.text, gen);
     if (gen !== this.generation) return;

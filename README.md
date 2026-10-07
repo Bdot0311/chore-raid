@@ -52,7 +52,7 @@ Most chore apps gamify the *list*: you tick a box and get a sticker. Chore Raid 
 
 Your eyes are on the laundry, not the phone, so the game is audio-first:
 
-- **A real narrator:** every line is pre-recorded in a natural voice, not the phone's robotic one. Spoken progress, deadpan as ever: "Halfway. 10 dishes left." "The Hydra regrows a head. 3 dishes in 60 seconds."
+- **A real narrator:** every line is pre-recorded by a British storyteller voice, not the phone's robotic one. Spoken progress, deadpan as ever: "Halfway. 10 dishes left." "The Hydra regrows a head. 3 dishes in 60 seconds."
 - **Synthesized sound effects** for every hit, combo, wind-up tick, crit, heal, heartbeat at low HP and death.
 - **Haptics** on hits (Android).
 - **Optional voice hits:** say "hit", "done" or "next" instead of tapping. The mic pauses while the game is talking, so it never hears itself.

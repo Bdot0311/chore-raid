@@ -20,9 +20,47 @@ export function StoryIntro({ onDone }: Props) {
   const naming = i === PANELS.length;
   const panel = PANELS[Math.min(i, PANELS.length - 1)];
 
+  // Phones keep audio locked until the first tap, so the tale starts on a title card.
+  const [started, setStarted] = useState(false);
+
   useEffect(() => {
-    if (!naming) speech.interrupt(panel.text);
-  }, [i, naming, panel.text]);
+    if (started && !naming) speech.interrupt(panel.text);
+  }, [i, naming, panel.text, started]);
+
+  if (!started) {
+    return (
+      <button
+        className="relative block h-full w-full overflow-hidden bg-black text-left"
+        onClick={() => {
+          unlockAudio();
+          setStarted(true);
+        }}
+      >
+        <motion.img
+          src={PANELS[0].art}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover"
+          initial={{ opacity: 0, scale: 1.1 }}
+          animate={{ opacity: 0.55, scale: 1 }}
+          transition={{ duration: 2.5 }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/20 to-black/90" />
+        <div className="safe-pad relative flex h-full flex-col items-center justify-between text-center">
+          <motion.div className="mt-[18vh]" initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4, duration: 0.8 }}>
+            <h1 className="font-display text-6xl leading-none text-gold drop-shadow-[0_4px_0_#0d0b1a]">CHORE RAID</h1>
+            <p className="mt-3 font-display text-xl text-white/90">Your home is a dungeon.</p>
+          </motion.div>
+          <motion.p
+            className="mb-10 font-display text-2xl tracking-[0.25em] text-white"
+            animate={{ opacity: [0.4, 1, 0.4] }}
+            transition={{ repeat: Infinity, duration: 2 }}
+          >
+            TAP TO BEGIN
+          </motion.p>
+        </div>
+      </button>
+    );
+  }
 
   const next = () => {
     unlockAudio();
