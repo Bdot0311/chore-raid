@@ -46,6 +46,7 @@ export const RaidStage = forwardRef<StageHandle, Props>(function RaidStage({ bos
         onBossAttack: (big) => attackCb.current?.(big),
         onStomp: () => sfx.stomp(0.8, false),
         onRoar: () => sfx.roar(),
+        onBlock: () => sfx.clang(),
       })
       .then(() => w.setHp(hpRef.current))
       .catch((err) => console.error('3D scene failed to load', err));

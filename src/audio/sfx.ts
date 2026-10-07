@@ -160,6 +160,15 @@ class Sfx {
     this.burst(t, 0.18, { type: 'lowpass', freq: 500, to: 90, gain: 0.25 + strength * 0.3 });
   }
 
+  /** Steel on steel: a parried swing. */
+  clang() {
+    if (!this.ready) return;
+    const t = this.now;
+    this.tone(1250, t, 0.25, { wave: 'triangle', gain: 0.12, to: 1150 });
+    this.tone(1870, t, 0.18, { wave: 'sine', gain: 0.07 });
+    this.burst(t, 0.08, { freq: 4200, q: 3, gain: 0.18 });
+  }
+
   /** A boss's roar: two detuned growls swelling and falling. */
   roar() {
     if (!this.ready) return;

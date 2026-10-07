@@ -1,6 +1,8 @@
 import { motion } from 'motion/react';
 import { useContext, useEffect, useRef } from 'react';
+import { speech } from '../audio/speech';
 import { region } from '../game/campaign';
+import { say } from '../game/narration';
 import type { RegionId } from '../game/types';
 import { Town } from '../world/Town';
 import { HeroContext } from './RaidStage';
@@ -24,6 +26,7 @@ export function TownWalk({ regionId, onDone }: Props) {
   };
 
   useEffect(() => {
+    speech.interrupt(say.town(regionId));
     const town = new Town();
     town
       .play(host.current!, { hero: heroId, region: regionId })

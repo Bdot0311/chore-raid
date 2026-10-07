@@ -43,6 +43,8 @@ export interface WorldOptions {
   onBossAttack?: (big: boolean) => void;
   onStomp?: () => void;
   onRoar?: () => void;
+  /** A swing parried by the hero's block. */
+  onBlock?: () => void;
 }
 
 interface Tween {
@@ -130,6 +132,8 @@ export class World {
   private queued: { mult: number; gained: number }[] = [];
   private counterUntil = 0;
   private charging = false;
+  private sparring = false;
+  private nextSpar = 2.5;
   private pendingKnockdown = false;
   private windupOn = false;
   private healGlow = 0;
@@ -597,6 +601,38 @@ export class World {
   }
 
   /** The blow lands on the hero: real damage to the hero's health. */
+  /**
+   * Between real blows the enemy keeps swinging and the hero keeps blocking:
+   * the fight never stops while the chore is being done. No damage.
+   */
+  private async spar() {
+    if (this.sparring) return;
+    this.sparring = true;
+    const caster = this.o.enemy.attack.startsWith('Spellcast');
+    const toHero = this.heroMark.clone().sub(this.enemyMark).setY(0).normalize();
+    const lunge = caster ? this.enemyMark.clone() : this.heroMark.clone().addScaledVector(toHero, -(1.4 + this.o.enemy.size * 0.5));
+    const from = this.enemy.root.position.clone();
+    this.tween(0.18, (k) => this.enemy.root.position.lerpVectors(from, lunge, k));
+    const clips = caster ? ['Spellcast_Shoot'] : [this.o.enemy.attack, '1H_Melee_Attack_Slice_Horizontal', '1H_Melee_Attack_Stab'];
+    const clip = clips[Math.floor(Math.random() * clips.length)];
+    const speed = 1.35;
+    const swing = this.enemy.once(clip, { speed });
+    const impactMs = (this.enemy.duration(clip) / speed) * 0.45 * 1000;
+    if (caster) window.setTimeout(() => this.spell(), impactMs * 0.6);
+    window.setTimeout(() => {
+      if (this.destroyed || this.dead || this.busy) return;
+      void this.hero.once('Block_Hit', { speed: 1.3 });
+      const at = this.hero.root.position.clone().add(new Vector3(0.25, 1.4, -0.5));
+      this.fx.burst(at, { count: 14, speed: 5, colors: [0xffffff, 0xffd36b], additive: true, gravity: -6, life: 0.35, size: 0.16 });
+      this.shake = Math.max(this.shake, 0.08);
+      this.o.onBlock?.();
+    }, impactMs);
+    await swing;
+    const back = this.enemy.root.position.clone();
+    this.tween(0.3, (k) => this.enemy.root.position.lerpVectors(back, this.enemyMark, k));
+    this.sparring = false;
+  }
+
   heroStruck(damage: number, big: boolean, knockdown: boolean) {
     if (!this.ready || this.dead) return;
     this.charging = false;
@@ -781,8 +817,15 @@ export class World {
       }
       return;
     }
+    // Keep the fight going: a parried swing every few seconds.
+    this.nextSpar -= dt;
+    if (this.nextSpar <= 0 && !this.busy && !this.windupOn && !this.charging && !this.sparring && !this.hero.walking) {
+      this.nextSpar = rand(2.8, 4.8);
+      void this.spar();
+      return;
+    }
     this.nextTaunt -= dt;
-    if (this.nextTaunt <= 0 && !this.busy && !this.windupOn && !this.charging) {
+    if (this.nextTaunt <= 0 && !this.busy && !this.windupOn && !this.charging && !this.sparring) {
       this.nextTaunt = rand(5, 9);
       void this.enemy.once('Taunt');
     }

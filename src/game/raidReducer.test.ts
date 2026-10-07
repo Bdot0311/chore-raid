@@ -145,26 +145,27 @@ describe('wind-ups', () => {
 describe('the enemy fights back', () => {
   const pace = PACE.bossFight;
   const fresh = () => createRaid('r', 'laundry', 4, 0, () => 0.5, createDuel(0, pace));
+  const first = createDuel(0, pace).nextAttackAt;
 
   it('charges and lands a blow on the hero, never touching the boss HP', () => {
     let raid = fresh();
-    let res = raidReducer(raid, { type: 'TICK' }, pace.intervalMs - pace.chargeMs);
-    expect(res.events).toContainEqual({ type: 'enemy-charge', landsAt: pace.intervalMs });
+    let res = raidReducer(raid, { type: 'TICK' }, first - pace.chargeMs);
+    expect(res.events).toContainEqual({ type: 'enemy-charge', landsAt: first });
     raid = res.raid;
-    res = raidReducer(raid, { type: 'TICK' }, pace.intervalMs);
+    res = raidReducer(raid, { type: 'TICK' }, first);
     expect(res.events).toContainEqual({ type: 'hero-struck', damage: pace.damage, heroHp: 100 - pace.damage, big: false });
     expect(res.raid.hp).toBe(4);
   });
 
   it('a hit during the charge interrupts it for bonus score', () => {
-    const res = raidReducer(fresh(), { type: 'HIT', source: 'tap' }, pace.intervalMs - 1000);
+    const res = raidReducer(fresh(), { type: 'HIT', source: 'tap' }, first - 1000);
     expect(res.events).toContainEqual({ type: 'interrupt', bonus: INTERRUPT_BONUS });
-    expect(res.raid.duel!.nextAttackAt).toBe(pace.intervalMs - 1000 + pace.intervalMs);
+    expect(res.raid.duel!.nextAttackAt).toBe(first - 1000 + pace.intervalMs);
   });
 
   it('a knockdown costs a Loot Star', () => {
     const raid = { ...fresh(), duel: { ...createDuel(0, pace), heroHp: 5 } };
-    const res = raidReducer(raid, { type: 'TICK' }, pace.intervalMs);
+    const res = raidReducer(raid, { type: 'TICK' }, first);
     expect(res.events).toContainEqual({ type: 'knockdown', lootStars: raid.lootStars - 1 });
     expect(res.raid.duel!.heroHp).toBe(100);
   });

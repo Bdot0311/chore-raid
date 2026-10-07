@@ -34,8 +34,8 @@ def main():
     ap.add_argument("lines")
     ap.add_argument("--model", required=True)
     ap.add_argument("--voices", required=True)
-    ap.add_argument("--voice", default="bm_george")
-    ap.add_argument("--speed", type=float, default=0.92)
+    ap.add_argument("--voice", default="bm_fable")
+    ap.add_argument("--speed", type=float, default=1.05)
     args = ap.parse_args()
 
     lines = json.loads(Path(args.lines).read_text())

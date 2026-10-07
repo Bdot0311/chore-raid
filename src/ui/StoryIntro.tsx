@@ -24,7 +24,8 @@ export function StoryIntro({ onDone }: Props) {
   const [started, setStarted] = useState(false);
 
   useEffect(() => {
-    if (started && !naming) speech.interrupt(panel.text);
+    if (!started) return;
+    speech.interrupt(naming ? say.chooseHero : panel.text);
   }, [i, naming, panel.text, started]);
 
   if (!started) {

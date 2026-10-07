@@ -1,6 +1,9 @@
 import { motion } from 'motion/react';
+import { useEffect } from 'react';
+import { speech } from '../audio/speech';
 import { bossSpriteUrl } from '../game/bossArt';
 import { enemy, levelName, region, REGIONS, stepsFor, throneUnlocked, type RegionDef } from '../game/campaign';
+import { say } from '../game/narration';
 import { dailyBounty } from '../game/progression';
 import type { Profile, Quest, RegionId } from '../game/types';
 import { btn } from './ui';
@@ -80,6 +83,13 @@ export function WorldMap({ profile, activeQuest, onRegion, onContinue, onQuickRa
   const bounty = dailyBounty(Date.now());
   const throneOpen = throneUnlocked(profile.regionsCleared);
   const active = activeQuest && region(activeQuest.region);
+  const cleared = profile.regionsCleared.filter((id) => id !== 'throne').length;
+
+  // The narrator greets each return to the map (queued, so a welcome line finishes first).
+  const throneLeft = throneOpen && !profile.regionsCleared.includes('throne');
+  useEffect(() => {
+    speech.say(say.map(cleared, throneLeft));
+  }, [cleared, throneLeft]);
 
   return (
     <div className="relative h-full overflow-hidden bg-dungeon-950">

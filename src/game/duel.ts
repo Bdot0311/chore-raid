@@ -41,13 +41,16 @@ export const HERO_MAX_HP = 100;
 
 /** Real chores set the pace: a step takes minutes, a folded shirt seconds. */
 export const PACE = {
-  /** Quick steps (gather the load): a blow every ~45 s if you dawdle. */
-  task: { intervalMs: 45_000, chargeMs: 12_000, damage: 15 },
-  /** Counting fights against a minion. */
-  minionFight: { intervalMs: 28_000, chargeMs: 9_000, damage: 12 },
-  /** Boss fights hit harder and more often. */
-  bossFight: { intervalMs: 24_000, chargeMs: 8_000, damage: 20 },
+  /** Quick steps (gather the load): the minion keeps swinging until the step is done. */
+  task: { intervalMs: 13_000, chargeMs: 5_000, damage: 6 },
+  /** Counting fights against a minion: finish items faster than it attacks. */
+  minionFight: { intervalMs: 11_000, chargeMs: 4_500, damage: 7 },
+  /** Boss fights hit harder. */
+  bossFight: { intervalMs: 12_000, chargeMs: 5_000, damage: 10 },
 } satisfies Record<string, DuelPace>;
+
+/** The first blow of an encounter comes quickly: the fight starts at once. */
+export const OPENER_MS = 9_000;
 
 /** A missed wind-up lands as a heavy blow. */
 export const WINDUP_MISS_DAMAGE = 25;
@@ -59,13 +62,13 @@ export const FLAWLESS_XP = 50;
 export const WAKE_GRACE_MS = 10_000;
 
 export function createDuel(now: number, pace: DuelPace, heroHp = HERO_MAX_HP): Duel {
-  return { heroHp, heroMax: HERO_MAX_HP, nextAttackAt: now + pace.intervalMs, hitsTaken: 0, knockdowns: 0, pace };
+  return { heroHp, heroMax: HERO_MAX_HP, nextAttackAt: now + Math.max(OPENER_MS, pace.chargeMs + 2000), hitsTaken: 0, knockdowns: 0, pace };
 }
 
-/** A new step or fight: same health, new rhythm, a full interval to start. */
+/** A new step or fight: same health, new rhythm, and the enemy opens quickly. */
 export function withPace(duel: Duel | undefined, pace: DuelPace, now: number): Duel {
   if (!duel) return createDuel(now, pace);
-  return { ...duel, pace, nextAttackAt: now + pace.intervalMs, announced: undefined };
+  return { ...duel, pace, nextAttackAt: now + Math.max(OPENER_MS, pace.chargeMs + 2000), announced: undefined };
 }
 
 export function isCharging(duel: Duel, now: number) {

@@ -1,3 +1,4 @@
+import type { RegionId } from './types';
 import { BUILT_IN_BOSSES } from './bosses';
 import { CAMPAIGN_ENEMIES, REGIONS } from './campaign';
 import { allBossSentences } from './speechLines';
@@ -12,7 +13,7 @@ import { allBossSentences } from './speechLines';
 export const STORY_PANELS = [
   {
     art: '/art/story-1.webp',
-    text: 'Hear now a tale. One ordinary evening, the Mess King moved into your home. Nobody invited him. He brought laundry.',
+    text: 'Hear now a tale! One ordinary evening, the Mess King moved into your home. Nobody invited him. He brought laundry.',
   },
   {
     art: '/art/story-2.webp',
@@ -20,14 +21,29 @@ export const STORY_PANELS = [
   },
   {
     art: '/art/world-map.webp',
-    text: 'Three lairs. Three bosses. One very messy kingdom. Win them back, and the Mess King shall have nowhere left to sit.',
+    text: 'Three lairs! Three bosses! One very messy kingdom. Win them back, and the Mess King shall have nowhere left to sit.',
   },
 ];
 
 export const MAX_SPOKEN_LEVEL = 50;
 
+const TOWN: Record<RegionId, string> = {
+  laundry: 'Onward, through the village, to the Laundry Lair! The villagers cheer. They are running low on clean socks.',
+  dishes: 'Onward to the Sink Caverns! The villagers cheer. They have been eating off napkins for days.',
+  clutter: 'Onward to the Clutter Keep! The villagers cheer, from a safe distance.',
+  throne: 'The road to the throne! The whole village has come out to watch. No pressure.',
+};
+
 export const say = {
+  chooseHero: 'Now then. Who are you, hero? Choose your champion, and tell me your name.',
   welcome: 'Welcome, hero. Your quest begins in the Laundry Lair. Probably.',
+  map: (cleared: number, throneOpen: boolean) =>
+    throneOpen
+      ? 'The throne room stands open! The Mess King awaits. He is pretending not to be nervous.'
+      : cleared === 0
+        ? 'Behold, your kingdom! Three lairs, held by the Mess King and his crew. Choose where to strike.'
+        : 'Back at the map. The Mess King grows nervous. Choose your next lair.',
+  town: (region: RegionId) => TOWN[region],
   step: (title: string, instruction: string) => `${title}. ${instruction}`,
   cycleDone: 'The machine is finished. Back to the quest.',
   levelCleared: 'Level cleared. Take a breath. Then the next one.',
@@ -57,7 +73,8 @@ export function sentences(text: string): string[] {
 
 /** Every sentence the game can say with the built-in content. */
 export function allSentences(): string[] {
-  const texts: string[] = [...STORY_PANELS.map((p) => p.text), say.welcome, say.cycleDone, say.levelCleared, 'Level up.'];
+  const texts: string[] = [...STORY_PANELS.map((p) => p.text), say.welcome, say.cycleDone, say.levelCleared, 'Level up.', say.chooseHero];
+  texts.push(say.map(0, false), say.map(1, false), say.map(3, true), ...Object.values(TOWN));
   for (let n = 2; n <= MAX_SPOKEN_LEVEL; n++) texts.push(say.levelUp(n));
   for (const r of REGIONS) {
     texts.push(r.intro, say.questCleared(r.name));
