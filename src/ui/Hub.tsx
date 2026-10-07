@@ -12,6 +12,7 @@ interface Props {
   onAbandon: (raid: Raid) => void;
   onTrophies: () => void;
   onSummon: () => void;
+  onBack: () => void;
 }
 
 function Portrait({ boss }: { boss: BossDef }) {
@@ -30,22 +31,25 @@ function Portrait({ boss }: { boss: BossDef }) {
   );
 }
 
-export function Hub({ bosses, profile, activeRaid, onPick, onResume, onAbandon, onTrophies, onSummon }: Props) {
+export function Hub({ bosses, profile, activeRaid, onPick, onResume, onAbandon, onTrophies, onSummon, onBack }: Props) {
   const activeBoss = activeRaid && bosses.find((b) => b.id === activeRaid.bossId);
 
   return (
     <div className="min-h-full bg-[radial-gradient(circle_at_50%_0%,#2c2752,var(--color-dungeon-950)_60%)]">
       <div className="safe-pad mx-auto flex min-h-full max-w-md flex-col gap-5">
-        <header className="pt-4 text-center">
+        <button className="self-start py-1 text-sm font-semibold text-ash" onClick={onBack}>
+          ← Map
+        </button>
+        <header className="text-center">
           <motion.h1
             className="font-display text-5xl leading-none text-bone drop-shadow-[0_4px_0_#0d0b1a]"
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 260, damping: 14 }}
           >
-            CHORE <span className="text-ember">RAID</span>
+            QUICK <span className="text-ember">RAID</span>
           </motion.h1>
-          <p className="mt-2 text-sm font-semibold text-ash">Your home is a dungeon. Every mess is a boss.</p>
+          <p className="mt-2 text-sm font-semibold text-ash">One chore, one boss, no story. Count it and fight.</p>
         </header>
 
         <section className="grid grid-cols-2 gap-3">

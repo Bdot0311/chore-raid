@@ -1,7 +1,7 @@
-import type { BossDef, LootItem, Photo, Profile, Raid } from '../game/types';
+import type { BossDef, LootItem, Photo, Profile, Quest, Raid } from '../game/types';
 
 const DB_NAME = 'chore-raid';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 interface Stores {
   bosses: BossDef;
@@ -9,6 +9,7 @@ interface Stores {
   photos: Photo;
   loot: LootItem;
   profile: Profile;
+  quests: Quest;
 }
 export type StoreName = keyof Stores;
 
@@ -26,6 +27,9 @@ function openDB(): Promise<IDBDatabase> {
         db.createObjectStore('photos', { keyPath: 'id' });
         db.createObjectStore('loot', { keyPath: 'id' });
         db.createObjectStore('profile');
+      }
+      if (e.oldVersion < 2) {
+        db.createObjectStore('quests', { keyPath: 'id' }).createIndex('status', 'status');
       }
     };
     req.onsuccess = () => resolve(req.result);

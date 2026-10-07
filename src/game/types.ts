@@ -1,4 +1,4 @@
-export type BossKind = 'laundry' | 'dishes' | 'clutter' | 'custom';
+export type BossKind = 'laundry' | 'dishes' | 'clutter' | 'king' | 'custom';
 
 export interface BossDef {
   id: string;
@@ -12,6 +12,8 @@ export interface BossDef {
   hue: number;
   createdAt: number;
   builtIn: boolean;
+  /** Art key when it differs from the kind (minions share their region's kind). */
+  art?: string;
 }
 
 export type RaidStatus = 'active' | 'won' | 'abandoned';
@@ -58,6 +60,8 @@ export interface Raid {
   beforePhotoId?: string;
   afterPhotoId?: string;
   lootId?: string;
+  /** Set when the raid is a fight inside a campaign quest. */
+  questId?: string;
 }
 
 export interface Photo {
@@ -93,4 +97,38 @@ export interface Profile {
   raidsWon: number;
   equippedSkin: string;
   settings: Settings;
+  /** Campaign progression. */
+  heroName: string;
+  storySeen: boolean;
+  xp: number;
+  /** Region ids whose boss has been defeated in the campaign. */
+  regionsCleared: string[];
+  streak: { days: number; lastDate: string };
+}
+
+export type RegionId = 'laundry' | 'dishes' | 'clutter' | 'throne';
+
+export type QuestStatus = 'active' | 'won' | 'abandoned';
+
+/** One campaign run of a region: a sequence of levels, each a list of real chore steps. */
+export interface Quest {
+  id: string;
+  region: RegionId;
+  levels: number;
+  levelNames: string[];
+  level: number;
+  step: number;
+  status: QuestStatus;
+  startedAt: number;
+  endedAt?: number;
+  /** Set while a machine cycle (washer, dryer) is running. */
+  timerEndsAt?: number;
+  timerMinutes?: number;
+  /** The fight for the current step, once it has started. */
+  raidId?: string;
+  /** The boss fight of the final level, for the victory screen and loot. */
+  bossRaidId?: string;
+  xp: number;
+  /** Items finished across all fights in this quest. */
+  items: number;
 }

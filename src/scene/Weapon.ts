@@ -55,9 +55,10 @@ export class Weapon {
   private recoil = 0;
   private next = 0;
 
-  constructor(renderer: Renderer, art?: Texture) {
+  constructor(renderer: Renderer, art?: Texture, tint = 0xffffff) {
     const tex = art ?? drawBroomblade(renderer);
     this.sprite = new Sprite(tex);
+    this.sprite.tint = tint;
     // The grip sits near the bottom-right corner of the art; rotate around it.
     this.sprite.anchor.set(art ? 0.8 : 0.9, art ? 0.94 : 0.92);
     this.root.addChild(this.sprite);

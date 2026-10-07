@@ -51,6 +51,12 @@ const TROPHIES: Record<BossKind, Record<Rarity, string[]>> = {
     epic: ['Lamp of Reclamation', 'Mug of Many Coffees'],
     legendary: ['The Visible Floor'],
   },
+  king: {
+    common: ['Bottle Cap Jewel'],
+    rare: ['Royal Plunger'],
+    epic: ['Stained Bedsheet Cape'],
+    legendary: ['The Laundry Basket Crown'],
+  },
   custom: {
     common: ['Dust Mote', 'Small Victory'],
     rare: ['Essence of Tidiness'],

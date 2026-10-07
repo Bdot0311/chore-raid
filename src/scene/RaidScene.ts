@@ -26,6 +26,11 @@ export interface SceneBoss {
   weapon?: Texture;
   /** Fired when the boss lands a (purely cosmetic) blow, for sound and haptics. */
   onBossAttack?: (big: boolean) => void;
+  /** Calm mode for task and timer steps: the enemy idles and never lashes out. */
+  passive?: boolean;
+  /** Equipped weapon look: blade tint and slash-trail color. */
+  weaponTint?: number;
+  trail?: number;
   /** Painted arena background; a gradient is drawn when absent. */
   arena?: HTMLImageElement;
   /** Particle colors: the boss's material (fabric scraps, suds, splinters). */
@@ -98,6 +103,7 @@ export class RaidScene {
   private hurtLevel = 0;
   private lunge: Spring = { x: 0, v: 0 };
   private attackCharge = 0;
+  private dormant = false;
 
   private bossFilter = new ColorMatrixFilter();
   private dotTex!: Texture;
@@ -154,7 +160,7 @@ export class RaidScene {
     this.bossSprite.anchor.set(0.5, 0.5);
     this.bossRoot.addChild(this.aura, this.glow, this.bossSprite);
 
-    this.weapon = new Weapon(this.app.renderer, boss.weapon);
+    this.weapon = new Weapon(this.app.renderer, boss.weapon, boss.weaponTint);
     this.world.addChild(this.bgSprite, this.embers, this.dim, this.bossRoot, this.fx, this.weapon.root, this.texts);
     this.app.stage.addChild(this.world, this.vignette, this.hurt, this.claws, this.flash);
 
@@ -189,7 +195,7 @@ export class RaidScene {
     this.attackCharge = 0;
     this.combo = multiplier;
     const move = this.weapon.attack(countered ? 'smash' : undefined);
-    this.slashFor(move, multiplier >= 3 ? hsl(this.boss.hue, 0.95, 0.75) : 0xffffff);
+    this.slashFor(move, multiplier >= 3 ? hsl(this.boss.hue, 0.95, 0.75) : (this.boss.trail ?? 0xffffff));
     const bolt = multiplier >= 3 && (multiplier === 4 || Math.random() < 0.5);
     if (bolt) this.lightning();
     if (countered) {
@@ -280,6 +286,36 @@ export class RaidScene {
     this.number(bx, by - 100, 'UNDO', 0x9a93bd, 34);
   }
 
+  /**
+   * A quick step is done: one decisive strike and the minion bursts apart.
+   * Shorter than a boss death, so stepping through a quest stays snappy.
+   */
+  defeat(): Promise<void> {
+    if (!this.ready || this.dead) return Promise.resolve();
+    this.dead = true;
+    this.weapon.attack('smash');
+    const { bx, by } = this.bossCenter();
+    this.arc(bx, by, 180, -2.4, -0.6, this.boss.trail ?? 0xffffff, 34, 360);
+    this.hitStop = 160;
+    this.shake = 22;
+    this.flashLevel = 1;
+    return new Promise((resolve) => {
+      window.setTimeout(() => {
+        if (this.destroyed) return resolve();
+        this.shatter();
+        this.overlayFlash = 0.6;
+        this.burst(bx, by, 90, { speed: 900, colors: [...this.boss.material, 0xffffff], tex: this.shardTex, gravity: 900, scale: 1.1 });
+        this.burst(bx, by, 40, { speed: 500, colors: [0xffc94d, 0xffffff], gravity: 0, add: true, life: 0.7 });
+        window.setTimeout(resolve, 900);
+      }, 220);
+    });
+  }
+
+  /** Dims the enemy while a machine cycle runs: it is "soaking", out of reach. */
+  setDormant(on: boolean) {
+    this.dormant = on;
+  }
+
   /** Returns a promise that settles when the death sequence is over. */
   die(): Promise<void> {
     if (!this.ready || this.dead) return Promise.resolve();
@@ -349,7 +385,7 @@ export class RaidScene {
     this.updateStage();
 
     // The mess fights back when you stall: a cosmetic blow after a few idle seconds.
-    if (!this.dead && !this.windupOn && this.time - this.lastHitAt > this.nextAttackIn) {
+    if (!this.boss.passive && !this.dead && !this.windupOn && this.time - this.lastHitAt > this.nextAttackIn) {
       this.attackCharge += dt;
       if (this.attackCharge > 0.7) {
         this.bossAttack(false);
@@ -385,7 +421,8 @@ export class RaidScene {
     this.glow.alpha = 0.35 + comboBoost + pulse * 0.2 + this.windupLevel * 0.35 + this.healGlow * 0.5;
 
     this.drawAura(pulse);
-    this.dim.alpha = this.windupLevel * 0.45;
+    this.dim.alpha = Math.max(this.windupLevel * 0.45, this.dormant ? 0.55 : 0);
+    this.bossSprite.alpha = this.dormant ? 0.55 + Math.sin(this.time * 1.5) * 0.1 : 1;
     this.dim.visible = this.dim.alpha > 0.01;
 
     for (const e of this.emberParts) this.stepParticle(e, dt, true);

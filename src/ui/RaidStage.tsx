@@ -1,18 +1,21 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import { bossMaterial, loadArena, loadBossStages, loadWeapon } from '../game/bossArt';
 import type { BossDef } from '../game/types';
+import { weapon as weaponDef } from '../game/progression';
 import { RaidScene } from '../scene/RaidScene';
 
-export type StageHandle = Pick<RaidScene, 'hit' | 'comboUp' | 'windup' | 'windupResult' | 'undo' | 'die' | 'setHp'>;
+export type StageHandle = Pick<RaidScene, 'hit' | 'comboUp' | 'windup' | 'windupResult' | 'undo' | 'die' | 'defeat' | 'setDormant' | 'setHp'>;
 
 interface Props {
   boss: BossDef;
   hpPct: number;
   onBossAttack?: (big: boolean) => void;
+  passive?: boolean;
+  weaponId?: string;
 }
 
 /** Mounts the PixiJS raid scene behind the HUD and exposes its effect calls. */
-export const RaidStage = forwardRef<StageHandle, Props>(function RaidStage({ boss, hpPct, onBossAttack }, ref) {
+export const RaidStage = forwardRef<StageHandle, Props>(function RaidStage({ boss, hpPct, onBossAttack, passive, weaponId }, ref) {
   const host = useRef<HTMLDivElement>(null);
   const scene = useRef<RaidScene | null>(null);
   const attackCb = useRef(onBossAttack);
@@ -31,6 +34,9 @@ export const RaidStage = forwardRef<StageHandle, Props>(function RaidStage({ bos
         weapon,
         material: bossMaterial(boss),
         onBossAttack: (big) => attackCb.current?.(big),
+        passive,
+        weaponTint: weaponDef(weaponId ?? '').tint,
+        trail: weaponDef(weaponId ?? '').trail,
       });
     });
     return () => {
@@ -38,6 +44,8 @@ export const RaidStage = forwardRef<StageHandle, Props>(function RaidStage({ bos
       s.destroy();
       scene.current = null;
     };
+    // The scene is built once per boss; passive and weapon only matter at mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boss]);
 
   useEffect(() => {
@@ -51,6 +59,8 @@ export const RaidStage = forwardRef<StageHandle, Props>(function RaidStage({ bos
     windupResult: (...a) => scene.current?.windupResult(...a),
     undo: () => scene.current?.undo(),
     die: () => scene.current?.die() ?? Promise.resolve(),
+    defeat: () => scene.current?.defeat() ?? Promise.resolve(),
+    setDormant: (on) => scene.current?.setDormant(on),
     setHp: (p) => scene.current?.setHp(p),
   }));
 

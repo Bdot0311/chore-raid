@@ -65,6 +65,18 @@ const BANKS: Record<BossKind, LineBank> = {
     lowHp: ['The Golem is wobbling.', 'The Golem is barely a pile anymore.'],
     death: ['The Clutter Golem collapses into nothing. Everything is where it lives.', 'The Golem is defeated. You can see the floor.'],
   },
+  king: {
+    start: [
+      'The Mess King looks up from his throne. He does not stand. He never stands.',
+      'The Mess King yawns. You have his attention. Barely.',
+    ],
+    attack: ['The Mess King flicks a crumb at you. It is a big crumb.', 'The Mess King points his plunger at you. Keep going.'],
+    windup: ['The Mess King summons more mess. {n} {units} in {s} seconds.', 'The King rallies the clutter. {n} {units} in {s} seconds.'],
+    beaten: ['Critical. The crown slips.', 'Critical. The King sits up straight for once.'],
+    missed: ['The Mess King reclines. The mess grows back a little.', 'Too slow. The King looks pleased with himself.'],
+    lowHp: ['The Mess King is losing his throne.', 'The King looks around for somewhere else to sit.'],
+    death: ['The Mess King topples off his throne. Your home is yours again.', 'The Mess King is defeated. He leaves without saying goodbye. Typical.'],
+  },
   custom: {
     start: ['A Mess Elemental appears. It is exactly as annoying as expected.', 'The Mess Elemental awakens. It has no opinion of you.'],
     attack: ['The Elemental lashes out. Keep going.', 'The mess pushes back. Push harder.'],

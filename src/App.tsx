@@ -1,78 +1,163 @@
 import { useEffect, useState } from 'react';
 import { unlockAudio } from './audio/unlock';
+import { BUILT_IN_BOSSES } from './game/bosses';
 import {
   DEFAULT_PROFILE,
   abandonRaid,
+  attachPhoto,
+  findActiveQuest,
   findActiveRaid,
+  finishRaid,
   getRaid,
   loadBosses,
   loadProfile,
-  attachPhoto,
-  finishRaid,
   saveCustomBoss,
   saveProfile,
+  startQuest,
   startRaid,
 } from './game/store';
-import { BUILT_IN_BOSSES } from './game/bosses';
-import type { BossDef, LootItem, Profile, Raid, Settings } from './game/types';
+import type { BossDef, LootItem, Profile, Quest, Raid, RegionId, Settings } from './game/types';
 import { savePhoto } from './lib/photos';
+import { Armory } from './ui/Armory';
 import { BossSetup } from './ui/BossSetup';
 import { CustomBossForm } from './ui/CustomBossForm';
 import { Hub } from './ui/Hub';
+import { QuestRunner } from './ui/QuestRunner';
 import { RaidScreen } from './ui/RaidScreen';
+import { RegionFreed } from './ui/RegionFreed';
+import { RegionStart } from './ui/RegionStart';
+import { StoryIntro } from './ui/StoryIntro';
 import { TrophyRoom } from './ui/TrophyRoom';
 import { Victory } from './ui/Victory';
+import { WorldMap } from './ui/WorldMap';
 
 type Screen =
+  | { name: 'intro' }
+  | { name: 'map' }
+  | { name: 'region'; region: RegionId }
+  | { name: 'quest'; quest: Quest }
+  | { name: 'freed'; region: RegionId }
+  | { name: 'armory' }
   | { name: 'hub' }
   | { name: 'setup'; boss: BossDef }
   | { name: 'raid'; boss: BossDef; raid: Raid }
-  | { name: 'victory'; boss: BossDef; raid: Raid; loot: LootItem }
+  | { name: 'victory'; boss: BossDef; raid: Raid; loot: LootItem; freed?: RegionId }
   | { name: 'trophies' }
   | { name: 'summon' };
 
 export default function App() {
   const [ready, setReady] = useState(false);
-  const [screen, setScreen] = useState<Screen>({ name: 'hub' });
+  const [screen, setScreen] = useState<Screen>({ name: 'map' });
   const [bosses, setBosses] = useState<BossDef[]>(BUILT_IN_BOSSES);
   const [profile, setProfile] = useState<Profile>(DEFAULT_PROFILE);
   const [activeRaid, setActiveRaid] = useState<Raid>();
+  const [activeQuest, setActiveQuest] = useState<Quest>();
 
-  const refreshHub = async () => {
-    const [p, b, a] = await Promise.all([loadProfile(), loadBosses(), findActiveRaid()]);
+  const refresh = async () => {
+    const [p, b, a, q] = await Promise.all([loadProfile(), loadBosses(), findActiveRaid(), findActiveQuest()]);
     setProfile(p);
     setBosses(b);
     setActiveRaid(a);
+    setActiveQuest(q);
+    return p;
   };
 
   useEffect(() => {
-    refreshHub()
+    refresh()
+      .then((p) => {
+        if (!p.storySeen) setScreen({ name: 'intro' });
+      })
       .catch((err) => console.error('Failed to load saved data', err))
       .finally(() => setReady(true));
   }, []);
 
-  const goHub = async () => {
-    setScreen({ name: 'hub' });
-    await refreshHub();
+  const go = async (next: Screen) => {
+    setScreen(next);
+    await refresh();
   };
+  const goMap = () => go({ name: 'map' });
+  const goHub = () => go({ name: 'hub' });
 
   const bossFor = (raid: Raid) => bosses.find((b) => b.id === raid.bossId);
 
-  const updateSettings = (settings: Settings) => {
-    const next = { ...profile, settings };
+  const saveAndSet = (next: Profile) => {
     setProfile(next);
     void saveProfile(next);
   };
+  const updateSettings = (settings: Settings) => saveAndSet({ ...profile, settings });
 
   if (!ready) return null;
 
   switch (screen.name) {
+    case 'intro':
+      return (
+        <StoryIntro
+          onDone={(heroName) => {
+            saveAndSet({ ...profile, heroName, storySeen: true });
+            setScreen({ name: 'map' });
+          }}
+        />
+      );
+    case 'map':
+      return (
+        <WorldMap
+          profile={profile}
+          activeQuest={activeQuest}
+          onRegion={(region) => {
+            unlockAudio();
+            setScreen({ name: 'region', region });
+          }}
+          onContinue={(quest) => {
+            unlockAudio();
+            setScreen({ name: 'quest', quest });
+          }}
+          onQuickRaid={goHub}
+          onTrophies={() => setScreen({ name: 'trophies' })}
+          onArmory={() => setScreen({ name: 'armory' })}
+          onStory={() => setScreen({ name: 'intro' })}
+        />
+      );
+    case 'region':
+      return (
+        <RegionStart
+          regionId={screen.region}
+          cleared={profile.regionsCleared.includes(screen.region)}
+          onBack={goMap}
+          onStart={async (levels, names) => {
+            unlockAudio();
+            const quest = await startQuest(screen.region, levels, names);
+            setActiveQuest(quest);
+            setScreen({ name: 'quest', quest });
+          }}
+        />
+      );
+    case 'quest':
+      return (
+        <QuestRunner
+          key={screen.quest.id}
+          initial={screen.quest}
+          profile={profile}
+          onProfile={setProfile}
+          onSettings={updateSettings}
+          onExit={goMap}
+          onBossVictory={async (quest, raid, boss) => {
+            const res = await finishRaid(raid, boss);
+            setProfile(res.profile);
+            setScreen({ name: 'victory', boss, raid: res.raid, loot: res.loot, freed: quest.region });
+          }}
+        />
+      );
+    case 'freed':
+      return <RegionFreed regionId={screen.region} profile={profile} onDone={goMap} />;
+    case 'armory':
+      return <Armory profile={profile} onEquip={(id) => saveAndSet({ ...profile, equippedSkin: id })} onBack={goMap} />;
     case 'hub':
       return (
         <Hub
           bosses={bosses}
           profile={profile}
           activeRaid={activeRaid}
+          onBack={goMap}
           onPick={(boss) => setScreen({ name: 'setup', boss })}
           onTrophies={() => setScreen({ name: 'trophies' })}
           onSummon={() => setScreen({ name: 'summon' })}
@@ -82,11 +167,11 @@ export default function App() {
             const fresh = (await getRaid(raid.id)) ?? raid;
             const boss = bossFor(fresh);
             if (boss && fresh.status === 'active') setScreen({ name: 'raid', boss, raid: fresh });
-            else await refreshHub();
+            else await refresh();
           }}
           onAbandon={async (raid) => {
             await abandonRaid(raid);
-            await refreshHub();
+            await refresh();
           }}
         />
       );
@@ -120,6 +205,7 @@ export default function App() {
           initial={screen.raid}
           settings={profile.settings}
           onSettings={updateSettings}
+          weaponId={profile.equippedSkin}
           onLeave={goHub}
           onWin={async (won) => {
             const { raid, loot, profile: p } = await finishRaid(won, screen.boss);
@@ -138,11 +224,11 @@ export default function App() {
             const photo = await savePhoto(file, screen.raid.id);
             return (await attachPhoto(screen.raid.id, 'afterPhotoId', photo.id)) ?? screen.raid;
           }}
-          onDone={goHub}
+          onDone={() => (screen.freed ? go({ name: 'freed', region: screen.freed }) : goHub())}
         />
       );
     case 'trophies':
-      return <TrophyRoom bosses={bosses} onBack={goHub} />;
+      return <TrophyRoom bosses={bosses} onBack={goMap} />;
     case 'summon':
       return (
         <CustomBossForm

@@ -198,6 +198,29 @@ class Sfx {
     notes.forEach((f, i) => this.tone(f, t + i * 0.09, 0.5, { wave: 'triangle', gain: 0.14 }));
   }
 
+  /** The washer is done: a bright three-note chime, played a few times. */
+  alarm() {
+    if (!this.ready) return;
+    const t = this.now;
+    for (let r = 0; r < 3; r++) {
+      [784, 988, 1319].forEach((f, i) => this.tone(f, t + r * 0.7 + i * 0.12, 0.5, { wave: 'triangle', gain: 0.22 }));
+    }
+  }
+
+  /** A step done: a quick rising sparkle. */
+  stepDone() {
+    if (!this.ready) return;
+    const t = this.now;
+    [523, 784, 1047].forEach((f, i) => this.tone(f, t + i * 0.06, 0.3, { wave: 'square', gain: 0.1 }));
+  }
+
+  levelUp() {
+    if (!this.ready) return;
+    const t = this.now;
+    [392, 523, 659, 784, 1047].forEach((f, i) => this.tone(f, t + i * 0.1, 0.6, { wave: 'sawtooth', gain: 0.1 }));
+    this.burst(t + 0.4, 0.8, { type: 'highpass', freq: 4000, gain: 0.2 });
+  }
+
   click() {
     if (!this.ready) return;
     this.tone(700, this.now, 0.04, { wave: 'triangle', gain: 0.08 });

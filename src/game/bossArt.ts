@@ -1,5 +1,5 @@
 import { Assets, Texture } from 'pixi.js';
-import type { BossDef, BossKind } from './types';
+import type { BossDef } from './types';
 
 interface BossArt {
   /** Painted sprite, cut out by tools/cutout.py. Custom bosses use a drawn stand-in. */
@@ -11,7 +11,7 @@ interface BossArt {
   material: number[];
 }
 
-const ART: Record<BossKind, BossArt> = {
+const ART: Record<string, BossArt> = {
   laundry: {
     sprite: '/art/laundry-1.webp',
     stages: ['/art/laundry-2.webp', '/art/laundry-3.webp', '/art/laundry-4.webp'],
@@ -31,10 +31,32 @@ const ART: Record<BossKind, BossArt> = {
     material: [0xd98b3a, 0x8a5a2b, 0x3b5b8f, 0xc94f2f, 0xe6d3a3, 0xf2a03d],
   },
   custom: { material: [0xbfbfbf, 0x8c8c8c, 0xe0e0e0] },
+  'sock-goblin': {
+    sprite: '/art/sock-goblin.webp',
+    arena: '/art/arena-laundry.webp',
+    material: [0xd94f8a, 0x34428f, 0xe8e2d0, 0x7a3fb0, 0x5b7f3a],
+  },
+  'grease-gremlin': {
+    sprite: '/art/grease-gremlin.webp',
+    arena: '/art/arena-dishes.webp',
+    material: [0xe9f6ff, 0x8fd3e8, 0xd9b44a, 0xffffff, 0x7a8f3a],
+  },
+  'dust-bunny': {
+    sprite: '/art/dust-bunny.webp',
+    arena: '/art/arena-clutter.webp',
+    material: [0x9a9a9a, 0xc8c2b8, 0x6b6b6b, 0xe6d3a3],
+  },
+  king: {
+    sprite: '/art/mess-king.webp',
+    arena: '/art/arena-throne.webp',
+    material: [0x8b5cf6, 0xffc94d, 0xe8e2d0, 0x34428f, 0xc23b3b, 0x3aa7c9],
+  },
 };
 
+const artFor = (boss: BossDef): BossArt => ART[boss.art ?? boss.kind] ?? ART[boss.kind] ?? ART.custom;
+
 export function bossMaterial(boss: BossDef) {
-  return ART[boss.kind].material;
+  return artFor(boss).material;
 }
 
 /** Painted first-person weapon, once its art is in. */
@@ -45,7 +67,7 @@ export const WEAPON_ART: string | undefined = '/art/weapon.webp';
  * skipped; with no art at all, a drawn stand-in tinted to the boss's hue.
  */
 export async function loadBossStages(boss: BossDef): Promise<Texture[]> {
-  const art = ART[boss.kind];
+  const art = artFor(boss);
   const urls = art.sprite ? [art.sprite, ...(art.stages ?? [])] : [];
   const loaded = await Promise.all(
     urls.map((u) =>
@@ -66,7 +88,7 @@ export async function loadWeapon(): Promise<Texture | undefined> {
 
 /** The boss's painted arena, decoded and ready to draw, or undefined if it has none. */
 export async function loadArena(boss: BossDef): Promise<HTMLImageElement | undefined> {
-  const url = ART[boss.kind].arena;
+  const url = artFor(boss).arena;
   if (!url) return undefined;
   const img = new Image();
   img.src = url;
@@ -120,7 +142,7 @@ function placeholderCanvas(hue: number) {
 }
 
 export function bossSpriteUrl(boss: BossDef): string | undefined {
-  return ART[boss.kind].sprite;
+  return artFor(boss).sprite;
 }
 
 /** Painted treasure chest, once its art is in. */

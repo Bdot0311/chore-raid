@@ -8,21 +8,32 @@
 Built for the Hackyard build week (theme: **Gamification**), Oct 5–9, 2026.
 
 <p>
-  <img src="docs/screenshots/hub.jpg" width="19%" alt="Hub" />
-  <img src="docs/screenshots/raid.jpg" width="19%" alt="Raid" />
-  <img src="docs/screenshots/windup.jpg" width="19%" alt="Boss wind-up" />
-  <img src="docs/screenshots/loot.jpg" width="19%" alt="Loot" />
-  <img src="docs/screenshots/win-card.jpg" width="19%" alt="Win card" />
+  <img src="docs/screenshots/1-map.jpg" width="16%" alt="World map" />
+  <img src="docs/screenshots/2-step.jpg" width="16%" alt="A quest step" />
+  <img src="docs/screenshots/3-timer.jpg" width="16%" alt="Washer timer" />
+  <img src="docs/screenshots/4-fight.jpg" width="16%" alt="Boss fight" />
+  <img src="docs/screenshots/5-level-up.jpg" width="16%" alt="Level up" />
+  <img src="docs/screenshots/6-win-card.jpg" width="16%" alt="Win card" />
 </p>
 
 ## The idea
 
-Most chore apps gamify the *list*: you tick a box and get a sticker. Chore Raid gamifies the *work itself*, while you are doing it.
+Most chore apps gamify the *list*: you tick a box and get a sticker. Chore Raid gamifies the *work itself*, while you are doing it, and it walks you through the chore step by step.
 
-1. Pick a boss: **The Laundry Leviathan**, **The Sink Hydra**, **The Clutter Golem**, or summon your own for any chore.
-2. Count the pile. That number is the boss's HP. Snap a before photo.
-3. Do the chore. Tap the phone once (anywhere on the screen) for every item you finish: a folded shirt, a washed plate, a thing put away.
-4. The boss dies exactly when the chore is done. Open the loot chest, snap the after photo, and get a win card as proof.
+**The story:** one evening the Mess King moved into your home. You, the hero (any name, anyone, any age), pull the Broomblade out of the hall closet and win the house back, one lair at a time.
+
+**The campaign:** a painted world map with three lairs and a throne room.
+
+- **The Laundry Lair:** one level per load; the Laundry Leviathan waits in the last load.
+- **The Sink Caverns:** one level per sinkful; the Sink Hydra guards the last.
+- **The Clutter Keep:** one level per room you pick; the Clutter Golem holds the last room.
+- **The Mess King's Throne:** opens once all three bosses fall. A whole-home reset is the final battle.
+
+**Every level is the real chore, step by step.** Laundry is *Gather → Sort → Start the washer (timer) → Dryer (timer) → Fold (boss fight) → Put it away (finishing blow)*. The game reads each step aloud, quick steps are one-tap minion skirmishes, washer and dryer cycles are timers that ring when the machine is done, and the counting step is the fight: one finished item, one hit.
+
+**Progression:** XP for every step, hero levels, weapons that unlock along the way (Frostbristle, Emberbroom, the Royal Mop), a daily bounty with 2× XP, a streak, loot chests, a trophy room, and a shareable before/after win card.
+
+**Quick raid** is still there for one-off chores, including custom bosses for anything countable.
 
 ## The one rule: HP is sacred
 

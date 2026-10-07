@@ -21,11 +21,14 @@ interface Props {
   onSettings: (s: Settings) => void;
   onWin: (raid: Raid) => void;
   onLeave: () => void;
+  /** Shown above the boss name inside a quest: "Load 2 of 3 · Step 5/6". */
+  stepLabel?: string;
+  weaponId?: string;
 }
 
 const HEARTBEAT_BELOW = 0.2;
 
-export function RaidScreen({ boss, initial, settings, onSettings, onWin, onLeave }: Props) {
+export function RaidScreen({ boss, initial, settings, onSettings, onWin, onLeave, stepLabel, weaponId }: Props) {
   const stage = useRef<StageHandle>(null);
   const root = useRef<HTMLDivElement>(null);
   const lastPoint = useRef<{ x: number; y: number } | null>(null);
@@ -192,6 +195,7 @@ export function RaidScreen({ boss, initial, settings, onSettings, onWin, onLeave
         ref={stage}
         boss={boss}
         hpPct={hpPct}
+        weaponId={weaponId}
         onBossAttack={(big) => {
           sfx.bossAttack(big);
           navigator.vibrate?.(big ? [120, 50, 120] : 90);
@@ -219,7 +223,10 @@ export function RaidScreen({ boss, initial, settings, onSettings, onWin, onLeave
           </button>
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline justify-between gap-2">
-              <h1 className="truncate font-display text-lg leading-tight text-bone drop-shadow">{boss.name}</h1>
+              <h1 className="truncate font-display text-lg leading-tight text-bone drop-shadow">
+                {stepLabel && <span className="block text-xs font-sans font-bold uppercase tracking-widest text-gold">{stepLabel}</span>}
+                {boss.name}
+              </h1>
               <span className="font-display text-sm tabular-nums text-ash">
                 {raid.hp}/{raid.maxHp}
               </span>
