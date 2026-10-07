@@ -4,12 +4,12 @@ Film on a phone, vertical. Screen-record the game and film the real chore; cut b
 
 | Time | Shot | Voice-over / on screen |
 |---|---|---|
-| 0:00–0:05 | A real, messy laundry pile on a bed | "Chores are boring because the progress is invisible." |
-| 0:05–0:12 | Hub → tap The Laundry Leviathan → count 12 → snap the before photo | "So I turned the pile into a boss. Its HP is the number of items." |
-| 0:12–0:30 | Split screen: folding a shirt, tapping the phone; the boss flashes, shakes, the combo climbs | "One folded item, one hit. You don't look at the phone; it talks to you." (let the game's voice say "Halfway. 6 items left.") |
-| 0:30–0:42 | Wind-up: red arena, countdown, fold 3 fast, CRITICAL | "Every so often the boss winds up. Beat the timer for a critical and better loot." |
-| 0:42–0:50 | Last item → boss shatters | "The boss dies exactly when the chore is done. Not a second before." |
-| 0:50–1:00 | Chest shakes, opens, rare trophy; after photo of the folded pile | "Loot, then proof." |
-| 1:00–1:10 | Win card with before/after side by side, then the share sheet | "Chore Raid. Your home is a dungeon. choreraid.netlify.app" |
+| 0:00–0:08 | Story intro: the house swallowed by laundry, the Broomblade in the closet | (let the narration play) "One ordinary evening, the Mess King moved in. Nobody invited him. He brought laundry." |
+| 0:08–0:14 | Name the hero, then the world map with three lairs | "Your home is a dungeon. Every chore is a lair to win back." |
+| 0:14–0:24 | Laundry Lair, 2 loads. Step card "Gather the load", read aloud; real hands grab clothes; tap DONE and the Sock Goblin bursts | "It walks you through the real chore, one step at a time." |
+| 0:24–0:32 | "Start the washer": real washer starting, timer starts, phone goes in a pocket; cut to the ring when it's done | "Machine cycles are timers. It rings when the washer's done." |
+| 0:32–0:50 | Last load: BOSS FIGHT. Folding a shirt, tapping the phone; the Broomblade slashes, the Leviathan breaks apart in stages, "Halfway. 6 items left." | "Fold one item, land one hit. The boss dies exactly when the chore is done." |
+| 0:50–0:58 | "Put it all away", the finishing blow, then QUEST COMPLETE, the XP tally and LEVEL UP | "Every step is XP. Level up, unlock new weapons." |
+| 0:58–1:08 | Loot chest, before/after win card, "The Laundry Lair is free", the map with the next lair glowing | "Two lairs to go. Then the Mess King. choreraid.netlify.app" |
 
-Tips: turn the ringer on (iPhone mutes web audio on silent), and do the raid for real; the before/after card only works because it's true.
+Tips: turn the ringer on (iPhone mutes web audio on silent), and do the chore for real; the before/after card only works because it's true.
