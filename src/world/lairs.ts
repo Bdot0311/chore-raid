@@ -83,7 +83,7 @@ const LAIRS: Record<LairId, LairDef> = {
     },
   },
   clutter: {
-    look: { fog: 0x22150c, fogNear: 10, fogFar: 42, sky: 0xffe0b0, ground: 0x3a2616, key: 0xffe7c4, torch: 0xffb35c, ambient: 1.25 },
+    look: { fog: 0x1f1712, fogNear: 10, fogFar: 42, sky: 0xe8e4ff, ground: 0x2e2420, key: 0xfff4e6, torch: 0xffc27a, ambient: 1.1 },
     floor: 'd_floor_wood_large',
     floorY: 0,
     wall: ['d_wall', 'd_wall', 'd_wall_arched'],

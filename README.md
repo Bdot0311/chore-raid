@@ -8,11 +8,11 @@
 Built for the Hackyard build week (theme: **Gamification**), Oct 5–9, 2026.
 
 <p>
-  <img src="docs/screenshots/1-map.jpg" width="16%" alt="World map" />
-  <img src="docs/screenshots/2-step.jpg" width="16%" alt="A quest step" />
-  <img src="docs/screenshots/3-timer.jpg" width="16%" alt="Washer timer" />
-  <img src="docs/screenshots/4-fight.jpg" width="16%" alt="Boss fight" />
-  <img src="docs/screenshots/5-level-up.jpg" width="16%" alt="Level up" />
+  <img src="docs/screenshots/1-hero.jpg" width="16%" alt="Pick your hero" />
+  <img src="docs/screenshots/2-town.jpg" width="16%" alt="Walking through the village" />
+  <img src="docs/screenshots/3-step.jpg" width="16%" alt="A quest step: striking a minion" />
+  <img src="docs/screenshots/4-timer.jpg" width="16%" alt="Washer timer: everyone rests" />
+  <img src="docs/screenshots/5-boss.jpg" width="16%" alt="Boss fight" />
   <img src="docs/screenshots/6-win-card.jpg" width="16%" alt="Win card" />
 </p>
 
@@ -20,13 +20,13 @@ Built for the Hackyard build week (theme: **Gamification**), Oct 5–9, 2026.
 
 Most chore apps gamify the *list*: you tick a box and get a sticker. Chore Raid gamifies the *work itself*, while you are doing it, and it walks you through the chore step by step.
 
-**The story:** one evening the Mess King moved into your home. You, the hero (any name, anyone, any age), pull the Broomblade out of the hall closet and win the house back, one lair at a time.
+**The story:** one evening the Mess King moved into your home. You, the hero (pick one of five, any name, any age), win the house back, one lair at a time.
 
-**The campaign:** a painted world map with three lairs and a throne room.
+**The campaign:** a painted world map with three lairs and a throne room, each reached by walking through the village.
 
-- **The Laundry Lair:** one level per load; the Laundry Leviathan waits in the last load.
-- **The Sink Caverns:** one level per sinkful; the Sink Hydra guards the last.
-- **The Clutter Keep:** one level per room you pick; the Clutter Golem holds the last room.
+- **The Laundry Lair:** one level per load; the Laundry Lich waits in the last load.
+- **The Sink Caverns:** one level per sinkful; the Sink Warlord guards the last.
+- **The Clutter Keep:** one level per room you pick; the Clutter Colossus holds the last room.
 - **The Mess King's Throne:** opens once all three bosses fall. A whole-home reset is the final battle.
 
 **Every level is the real chore, step by step.** Laundry is *Gather → Sort → Start the washer (timer) → Dryer (timer) → Fold (boss fight) → Put it away (finishing blow)*. The game reads each step aloud, quick steps are one-tap minion skirmishes, washer and dryer cycles are timers that ring when the machine is done, and the counting step is the fight: one finished item, one hit.
@@ -59,27 +59,29 @@ Your eyes are on the laundry, not the phone, so the game is audio-first:
 - **Screen stays awake** during a raid (Wake Lock API, with a tip where it isn't supported).
 - **Resume after reload:** a locked phone or an accidental swipe never loses a 40-item pile.
 
-## A real fight, not a counter
+## A real adventure, not a counter
 
-Your hands are full of laundry, so the input is one tap (or one word), but every tap is a real attack in a first-person fight (PixiJS, WebGL):
+Your hands are full of laundry, so the input is one tap (or one word), but every tap is a real attack in a 3D action scene (three.js, WebGL) with rigged, animated characters:
 
-- **Your weapon, the Broomblade,** swings in first person: slash, backslash, thrust, overhead smash, cycling so no two hits in a row look the same. Each strike leaves a slash trail across the boss, with hit-stop, flash, screen shake and debris made of the boss's own material.
-- **Combos unlock specials:** at ×3, lightning strikes the boss; at ×4, an ultimate X-slash in slow motion.
-- **The boss fights back.** Stall for too long and it lunges at you: the screen shakes, claw marks rake across it, and your phone buzzes. Hit back right after for a **COUNTER**. (It's all cosmetic: HP never changes except by finishing items.)
-- **Wind-ups are boss charge attacks.** Finish the items in time to **PARRY** for a critical; miss and it lands the blow and heals its Ward.
-- **Enemies feel alive.** Each painted character is a deformable mesh: feet planted, the body bends, breathes and wobbles where you hit it. Minions bounce, hop around the arena, turn and taunt; bosses stomp (with dust and screen shake), roar, rear back before a blow and lunge at the camera. Start a washer and the minion falls asleep until the cycle ends.
-- **The boss breaks apart as you work:** each boss has damage stages, and the last item triggers a **finisher**: a spinning double slash, then the boss shatters.
+- **Pick your hero:** Knight, Barbarian, Mage, Rogue or Ranger. Each fights differently: sword and shield, twin axes, spells from range, twin daggers.
+- **Walk to the lair.** Starting a quest plays a short run through the village, past cheering villagers, to the lair gate.
+- **Fight your way down the hall.** Each lair (a dungeon basement, a kitchen, a cluttered house, a throne room) is a long hall, and every step of the chore is fought a little deeper in. Minions claw their way out of the floor; bosses march in and roar.
+- **Every item is a real attack.** The hero dashes in and swings (slash, chop, cleave, stab, cycling), the enemy staggers back, with hit-stop, sparks, debris and screen shake. Combos unlock specials: at ×3, lightning; at ×4, slow-motion crits.
+- **The boss fights back.** Stall for too long and it attacks; your hero blocks, the screen flashes red and your phone buzzes. Hit back right after for a **COUNTER**. (All cosmetic: HP never changes except by finishing items.)
+- **Wind-ups are charge attacks.** Finish the items in time to **PARRY** for a critical; miss and the boss heals its Ward and swings.
+- **Bosses break apart as you work.** Shields, helmets and hats fly off as HP drops; the last item is a leaping finisher, and the boss collapses into a pile of bones.
+- **Machine cycles are rest breaks.** Start the washer and the hero sits down while the minion naps until the timer rings.
 
 ## How AI was used
 
 - **Code:** written with Claude Code (Anthropic) during the build window, from a plan we wrote together ([PLAN.md](PLAN.md)). I made the design calls (the HP-is-sacred rule, the deadpan tone, the art direction); Claude implemented, tested and iterated.
-- **Art:** the painted boss art was generated with **Bloom** from our own art-direction brief ([docs/ART_DIRECTION.md](docs/ART_DIRECTION.md)), then cut out into game sprites with a small script ([tools/cutout.py](tools/cutout.py)).
+- **Art:** the painted story panels, world map and lair backdrops were generated with **Bloom** from our own art-direction brief ([docs/ART_DIRECTION.md](docs/ART_DIRECTION.md)). The 3D characters, animations, dungeon, kitchen, furniture and village pieces are the free **KayKit** packs by Kay Lousberg (CC0), trimmed for the web by [tools/models.mjs](tools/models.mjs); menu portraits are renders of those models ([tools/portraits.cjs](tools/portraits.cjs)).
 - **Voice:** the narrator is recorded ahead of time with **Kokoro**, an open-weights text-to-speech model (Apache 2.0), one clip per sentence ([tools/narrate.py](tools/narrate.py)). A test checks that every line the game can say has a recording. Sound effects are synthesized in code with the Web Audio API (no audio files).
 
 ## Tech
 
 - Vite + React 19 + TypeScript, Tailwind CSS v4, Motion for UI animation
-- PixiJS 8 for the raid scene
+- three.js for the 3D scenes (one shared WebGL context, static scenery merged into a few draw calls, automatic lower quality on slow phones)
 - Web Audio API (synthesized SFX), Web Speech API (voice hits, and a fallback voice for custom bosses), Wake Lock API, Vibration API
 - IndexedDB for everything (raids, photos, loot). **No backend, no account:** your photos never leave your phone.
 - Vitest for the game logic: the raid reducer is pure and tested, including the HP rule, combos, wind-ups and loot odds.

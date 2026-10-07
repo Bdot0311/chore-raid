@@ -1,5 +1,6 @@
 import {
   ACESFilmicToneMapping,
+  BasicShadowMap,
   Color,
   DirectionalLight,
   Fog,
@@ -52,6 +53,7 @@ interface Tween {
 }
 
 let sharedRenderer: WebGLRenderer | undefined;
+let lowQuality = false;
 /** One WebGL context for the whole app: phones cap how many a page may open. */
 export function renderer() {
   if (!sharedRenderer) {
@@ -635,6 +637,7 @@ export class World {
     this.raf = requestAnimationFrame(this.frame);
     const dt = Math.min(0.05, (now - this.last) / 1000);
     this.last = now;
+    this.watchSpeed(dt * 1000);
     if (performance.now() > this.slowUntil) this.slowMo = 1;
 
     // Hit-stop freezes the fighters for a beat; the camera keeps shaking.
@@ -673,6 +676,22 @@ export class World {
     this.placeCamera(dt);
     renderer().render(this.scene, this.camera);
   };
+
+  private frames = 0;
+  private slowFrames = 0;
+
+  /** A phone that can't keep up drops to plain shadows and fewer pixels, once. */
+  private watchSpeed(ms: number) {
+    if (lowQuality || ++this.frames < 30) return;
+    if (ms > 30) this.slowFrames++;
+    if (this.frames === 150 && this.slowFrames > 70) {
+      lowQuality = true;
+      const r = renderer();
+      r.setPixelRatio(1);
+      r.shadowMap.type = BasicShadowMap;
+      this.fit();
+    }
+  }
 
   /** What the enemy does between your hits: taunts, attacks when you stall. */
   private behave(dt: number) {
