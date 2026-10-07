@@ -1,7 +1,8 @@
 """Records the narrator with ElevenLabs instead of Kokoro (same files, same keys).
 
 Reads the API key from the ELEVENLABS_API_KEY environment variable; never pass
-it on the command line. Resumable: clips already recorded with ElevenLabs are
+it on the command line. Without it, requests go out bare, for environments
+whose network proxy adds the key itself (a "network secret"). Resumable: clips already recorded with ElevenLabs are
 listed in public/voice/elevenlabs.json and skipped on the next run.
 
   npx tsx tools/narration-lines.ts > /tmp/lines.json
@@ -12,7 +13,6 @@ import argparse
 import json
 import os
 import re
-import sys
 import time
 import urllib.error
 import urllib.request
@@ -40,7 +40,10 @@ def synth(text: str, voice: str, model: str, key: str) -> bytes:
             "voice_settings": {"stability": 0.4, "similarity_boost": 0.8, "style": 0.35, "use_speaker_boost": True},
         }
     ).encode()
-    req = urllib.request.Request(url, data=body, headers={"xi-api-key": key, "Content-Type": "application/json", "Accept": "audio/mpeg"})
+    headers = {"Content-Type": "application/json", "Accept": "audio/mpeg"}
+    if key:
+        headers["xi-api-key"] = key
+    req = urllib.request.Request(url, data=body, headers=headers)
     for attempt in range(5):
         try:
             with urllib.request.urlopen(req, timeout=60) as r:
@@ -72,9 +75,7 @@ def main():
     if args.dry_run:
         return
 
-    key = os.environ.get("ELEVENLABS_API_KEY")
-    if not key:
-        sys.exit("Set ELEVENLABS_API_KEY in the environment")
+    key = os.environ.get("ELEVENLABS_API_KEY", "")
     OUT.mkdir(parents=True, exist_ok=True)
     for i, line in enumerate(todo):
         audio = synth(speakable(line["text"]), args.voice, args.model, key)
