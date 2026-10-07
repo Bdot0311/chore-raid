@@ -9,6 +9,8 @@ interface BossArt {
   /** Painted 9:16 arena behind the boss. */
   arena?: string;
   material: number[];
+  /** Small and bouncy (minions) rather than big and heavy (bosses). */
+  light?: boolean;
 }
 
 const ART: Record<string, BossArt> = {
@@ -34,16 +36,19 @@ const ART: Record<string, BossArt> = {
   'sock-goblin': {
     sprite: '/art/sock-goblin.webp',
     arena: '/art/arena-laundry.webp',
+    light: true,
     material: [0xd94f8a, 0x34428f, 0xe8e2d0, 0x7a3fb0, 0x5b7f3a],
   },
   'grease-gremlin': {
     sprite: '/art/grease-gremlin.webp',
     arena: '/art/arena-dishes.webp',
+    light: true,
     material: [0xe9f6ff, 0x8fd3e8, 0xd9b44a, 0xffffff, 0x7a8f3a],
   },
   'dust-bunny': {
     sprite: '/art/dust-bunny.webp',
     arena: '/art/arena-clutter.webp',
+    light: true,
     material: [0x9a9a9a, 0xc8c2b8, 0x6b6b6b, 0xe6d3a3],
   },
   king: {
@@ -54,6 +59,10 @@ const ART: Record<string, BossArt> = {
 };
 
 const artFor = (boss: BossDef): BossArt => ART[boss.art ?? boss.kind] ?? ART[boss.kind] ?? ART.custom;
+
+export function bossIsLight(boss: BossDef) {
+  return !!artFor(boss).light;
+}
 
 export function bossMaterial(boss: BossDef) {
   return artFor(boss).material;

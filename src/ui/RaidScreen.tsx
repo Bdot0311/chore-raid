@@ -114,7 +114,7 @@ export function RaidScreen({ boss, initial, settings, onSettings, onWin, onLeave
 
   useEffect(() => {
     if (initial.hits.length === 0) speech.say(lines.start(boss, initial.maxHp));
-    else speech.say(`Raid resumed. ${initial.hp} ${unitWord(boss, initial.hp)} left.`);
+    else speech.say(lines.resumed(boss, initial.hp));
     const release = holdWakeLock(setWakeHeld);
     const offSpeaking = speech.onSpeaking((on) => sfx.duck(on));
     return () => {

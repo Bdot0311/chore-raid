@@ -2,6 +2,7 @@ import { motion } from 'motion/react';
 import { useEffect } from 'react';
 import { speech } from '../audio/speech';
 import { region, throneUnlocked } from '../game/campaign';
+import { freedLines } from '../game/narration';
 import type { Profile, RegionId } from '../game/types';
 import { btn } from './ui';
 
@@ -19,16 +20,11 @@ export function RegionFreed({ regionId, profile, onDone }: Props) {
   const throneNext = !ending && throneUnlocked(profile.regionsCleared);
   const remaining = 3 - profile.regionsCleared.filter((id) => id !== 'throne').length;
 
-  const title = ending ? 'The home is yours' : `${r.name} is free`;
-  const text = ending
-    ? `The Mess King packed one small bag and left. He will be back; he always is. But tonight, ${hero}, every room is yours. Well played.`
-    : throneNext
-      ? `All three lairs are free. The Mess King has run out of places to hide. The throne room is open, ${hero}.`
-      : `One less lair for the Mess King. ${remaining} to go, ${hero}. He is pretending not to notice.`;
+  const { title, text, spoken } = freedLines(r.name, ending, throneNext, remaining, hero);
 
   useEffect(() => {
-    speech.interrupt(`${title}. ${text}`);
-  }, [title, text]);
+    speech.interrupt(spoken);
+  }, [spoken]);
 
   return (
     <div className="relative h-full overflow-hidden bg-black">

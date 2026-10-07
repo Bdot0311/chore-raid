@@ -4,12 +4,14 @@ import {
   ColorMatrixFilter,
   Container,
   Graphics,
+  Point,
   Rectangle,
   Sprite,
   Text,
   Texture,
   type Ticker,
 } from 'pixi.js';
+import { Creature, GLOW_PAD, GLOW_SHRINK } from './Creature';
 import { Weapon, type Move } from './Weapon';
 
 /**
@@ -35,6 +37,12 @@ export interface SceneBoss {
   arena?: HTMLImageElement;
   /** Particle colors: the boss's material (fabric scraps, suds, splinters). */
   material: number[];
+  /** Small and bouncy (minions) rather than big and heavy (bosses). */
+  light?: boolean;
+  /** Fired when the enemy lands from a hop or stomp (0–1), for sound. */
+  onStomp?: (strength: number) => void;
+  /** Fired when a boss roars. */
+  onRoar?: () => void;
 }
 
 interface Particle {
@@ -50,17 +58,6 @@ interface Particle {
   scale1: number;
   alpha0: number;
 }
-
-interface Spring {
-  x: number;
-  v: number;
-}
-
-const stepSpring = (s: Spring, dt: number, k = 380, c = 16) => {
-  const a = -k * s.x - c * s.v;
-  s.v += a * dt;
-  s.x += s.v * dt;
-};
 
 const hsl = (h: number, s: number, l: number) => {
   // HSL (0-360, 0-1, 0-1) to 0xRRGGBB for tints.
@@ -85,9 +82,9 @@ export class RaidScene {
   private dim = new Graphics();
   private embers = new Container();
   private bossRoot = new Container();
-  private glow = new Sprite();
   private aura = new Graphics();
-  private bossSprite = new Sprite();
+  private creature!: Creature;
+  private zzz = 0;
   private fx = new Container();
   private texts = new Container();
   private flash = new Graphics();
@@ -101,7 +98,6 @@ export class RaidScene {
   private nextAttackIn = 9;
   private counterUntil = 0;
   private hurtLevel = 0;
-  private lunge: Spring = { x: 0, v: 0 };
   private attackCharge = 0;
   private dormant = false;
 
@@ -117,8 +113,6 @@ export class RaidScene {
   private shake = 0;
   private flashLevel = 0;
   private overlayFlash = 0;
-  private squash: Spring = { x: 0, v: 0 };
-  private knock: Spring = { x: 0, v: 0 };
   private hpPct = 1;
   private shownScale = 1;
   private combo = 1;
@@ -127,10 +121,9 @@ export class RaidScene {
   private healGlow = 0;
   private dead = false;
   private baseScale = 1;
-  private bossY = 0;
+  private floorY = 0;
   private lastSize = '';
   private ownTextures: Texture[] = [];
-  private glowScale = 1;
 
   async init(host: HTMLElement, boss: SceneBoss) {
     this.boss = boss;
@@ -153,12 +146,13 @@ export class RaidScene {
     this.shardTex = this.app.renderer.generateTexture(new Graphics().poly([0, 0, 14, 4, 6, 12]).fill(0xffffff));
 
     this.glowTextures = boss.stages.map((t) => this.bakeGlow(t));
-    this.glow.texture = this.glowTextures[0];
-    this.glow.anchor.set(0.5);
-    this.glow.blendMode = 'add';
-    this.bossSprite.texture = boss.stages[0];
-    this.bossSprite.anchor.set(0.5, 0.5);
-    this.bossRoot.addChild(this.aura, this.glow, this.bossSprite);
+    this.creature = new Creature(boss.stages[0], this.glowTextures[0], !!boss.light);
+    this.creature.onLand = (strength) => this.landed(strength);
+    this.creature.onRoar = () => {
+      this.shake = Math.max(this.shake, 12);
+      this.boss.onRoar?.();
+    };
+    this.bossRoot.addChild(this.aura, this.creature.root);
 
     this.weapon = new Weapon(this.app.renderer, boss.weapon, boss.weaponTint);
     this.world.addChild(this.bgSprite, this.embers, this.dim, this.bossRoot, this.fx, this.weapon.root, this.texts);
@@ -167,6 +161,7 @@ export class RaidScene {
     for (let i = 0; i < 42; i++) this.spawnEmber(true);
 
     this.layout();
+    this.creature.enter();
     this.app.ticker.add(this.update);
     this.ready = true;
     void document.fonts?.load('40px "Lilita One"');
@@ -205,14 +200,12 @@ export class RaidScene {
     this.hitStop = 55 + multiplier * 10;
     this.shake = Math.min(26, 7 + multiplier * 4);
     this.flashLevel = 1;
-    this.squash.v += 5 + multiplier;
-    this.knock.v -= 260 + multiplier * 60;
-    this.lunge.v -= 2 + multiplier * 0.5;
 
     const { bx, by } = this.bossCenter();
     // Particles burst from the boss toward the tap, so it reads as "you struck it there".
     const ix = bx + (x - bx) * 0.35;
     const iy = by + (y - by) * 0.35;
+    this.creature.hurt(ix, iy, multiplier);
     this.burst(ix, iy, 16 + multiplier * 8, { speed: 520 + multiplier * 80, colors: this.boss.material, tex: this.shardTex, gravity: 900 });
     this.burst(ix, iy, 10 + multiplier * 4, { speed: 300, colors: [0xffffff, hsl(this.boss.hue, 0.9, 0.75)], gravity: 0, life: 0.45, add: true, scale: 0.9 });
     this.ring(ix, iy, multiplier >= 3 ? hsl(this.boss.hue, 0.9, 0.7) : 0xffffff, 60 + multiplier * 30);
@@ -241,7 +234,7 @@ export class RaidScene {
     this.windupOn = on;
     if (on && this.ready) {
       this.shake = Math.max(this.shake, 14);
-      this.lunge.v += 6;
+      this.creature.roar();
       const { width: w, height: h } = this.app.screen;
       this.number(w / 2, h * 0.3, 'WIND-UP!', 0xff5a4d, 64, 1.6);
     }
@@ -355,9 +348,9 @@ export class RaidScene {
     // The flash filter costs a render pass, so it is only attached while visible.
     if (this.flashLevel > 0) {
       this.bossFilter.brightness(1 + this.flashLevel * 2.2, false);
-      if (!this.bossSprite.filters?.length) this.bossSprite.filters = [this.bossFilter];
-    } else if (this.bossSprite.filters?.length) {
-      this.bossSprite.filters = [];
+      if (!this.creature.body.filters?.length) this.creature.body.filters = [this.bossFilter];
+    } else if (this.creature.body.filters?.length) {
+      this.creature.body.filters = [];
     }
     this.flash.alpha = this.overlayFlash;
     // Full-screen layers cost fill rate on phones even at alpha 0, so hide them when idle.
@@ -378,9 +371,6 @@ export class RaidScene {
 
     const dt = dtMs / 1000;
     this.time += dt;
-    stepSpring(this.squash, dt);
-    stepSpring(this.knock, dt, 220, 14);
-    stepSpring(this.lunge, dt, 160, 12);
     this.weapon.update(dt, this.time);
     this.updateStage();
 
@@ -398,31 +388,34 @@ export class RaidScene {
     // Damage-stage art already shows the boss shrinking, so scale less when it exists.
     const targetScale = this.boss.stages.length > 1 ? 0.88 + 0.12 * this.hpPct : 0.75 + 0.25 * this.hpPct;
     this.shownScale += (targetScale - this.shownScale) * Math.min(1, dt * 6);
-    const low = this.hpPct < 0.25;
-    const swaySpeed = low ? 5.5 : this.hpPct < 0.5 ? 2.6 : 1.6;
-    const breathe = Math.sin(this.time * swaySpeed) * 0.025;
-    const sq = Math.max(-0.3, Math.min(0.3, this.squash.x * 0.06));
-    // Rears back while charging a blow, surges toward you when it lands.
-    const charge = this.attackCharge > 0 ? -0.06 * Math.min(1, this.attackCharge / 0.7) : 0;
-    const sc = this.baseScale * this.shownScale * (1 + this.lunge.x * 0.04 + charge);
-    this.bossSprite.scale.set(sc * (1 + sq + breathe * 0.5), sc * (1 - sq * 0.8 + breathe));
-    this.bossSprite.rotation = Math.sin(this.time * swaySpeed * 0.7) * (low ? 0.06 : 0.025);
-    const tremble = this.windupOn || low ? rand(-2.5, 2.5) : 0;
-    this.bossSprite.position.set(tremble, this.knock.x * 0.12 + Math.sin(this.time * 1.3) * 6);
-
-    this.glow.scale.set(this.bossSprite.scale.x * this.glowScale * 1.05, this.bossSprite.scale.y * this.glowScale * 1.05);
-    this.glow.position.copyFrom(this.bossSprite.position);
-    this.glow.rotation = this.bossSprite.rotation;
+    this.creature.shownScale = this.shownScale;
+    this.creature.update(dt, {
+      hpPct: this.hpPct,
+      charge: this.attackCharge > 0 ? Math.min(1, this.attackCharge / 0.7) : 0,
+      windup: this.windupOn,
+      dormant: this.dormant,
+      passive: !!this.boss.passive,
+    });
+    const glow = this.creature.glow;
     this.windupLevel += ((this.windupOn ? 1 : 0) - this.windupLevel) * Math.min(1, dt * 4);
     this.healGlow = Math.max(0, this.healGlow - dt * 0.6);
     const pulse = 0.5 + 0.5 * Math.sin(this.time * (this.windupOn ? 9 : 2.2));
     const comboBoost = (this.combo - 1) * 0.12;
-    this.glow.tint = this.healGlow > 0.05 ? 0x4ade80 : this.windupLevel > 0.5 ? 0xff3b30 : hsl(this.boss.hue, 0.85, 0.6);
-    this.glow.alpha = 0.35 + comboBoost + pulse * 0.2 + this.windupLevel * 0.35 + this.healGlow * 0.5;
+    glow.tint = this.healGlow > 0.05 ? 0x4ade80 : this.windupLevel > 0.5 ? 0xff3b30 : hsl(this.boss.hue, 0.85, 0.6);
+    // A faint rim at rest; it flares for combos, wind-ups and heals.
+    glow.alpha = 0.16 + comboBoost + pulse * 0.08 + this.windupLevel * 0.45 + this.healGlow * 0.5;
 
     this.drawAura(pulse);
     this.dim.alpha = Math.max(this.windupLevel * 0.45, this.dormant ? 0.55 : 0);
-    this.bossSprite.alpha = this.dormant ? 0.55 + Math.sin(this.time * 1.5) * 0.1 : 1;
+    // Asleep while a machine runs: a drifting z now and then.
+    if (this.dormant && !this.dead) {
+      this.zzz -= dt;
+      if (this.zzz <= 0) {
+        this.zzz = rand(1.1, 1.7);
+        const c = this.creature.center();
+        this.number(c.x + this.creature.height * 0.22, c.y - this.creature.height * 0.3, Math.random() < 0.5 ? 'z' : 'Z', 0xc7d2fe, rand(30, 46), 2.2);
+      }
+    }
     this.dim.visible = this.dim.alpha > 0.01;
 
     for (const e of this.emberParts) this.stepParticle(e, dt, true);
@@ -461,9 +454,9 @@ export class RaidScene {
     if (next === this.stage) return;
     const breaking = next > this.stage;
     this.stage = next;
-    this.bossSprite.texture = this.boss.stages[next];
-    this.glow.texture = this.glowTextures[next];
+    this.creature.setTexture(this.boss.stages[next], this.glowTextures[next]);
     if (breaking) {
+      this.creature.stagger();
       // A piece of the boss gives way: flash, debris, a beat of hit-stop.
       const { bx, by } = this.bossCenter();
       this.hitStop = Math.max(this.hitStop, 120);
@@ -602,7 +595,7 @@ export class RaidScene {
   /** The boss lunges at the camera and rakes the screen. HP never changes. */
   private bossAttack(big: boolean) {
     if (!this.ready || this.dead) return;
-    this.lunge.v += big ? 14 : 9;
+    this.creature.lunge(big);
     this.shake = Math.max(this.shake, big ? 30 : 20);
     this.hurtLevel = big ? 1 : 0.75;
     this.weapon.block();
@@ -636,7 +629,8 @@ export class RaidScene {
 
   /** The boss's center in world (fx layer) coordinates. */
   private bossCenter() {
-    return { bx: this.app.screen.width / 2, by: this.bossY };
+    const c = this.creature.center();
+    return { bx: c.x, by: c.y };
   }
 
   private layout() {
@@ -666,8 +660,11 @@ export class RaidScene {
     const tex = this.boss.stages[0];
     // Fit the boss into the upper ~60% of the stage, leaving room for the HUD below.
     this.baseScale = Math.min((w * 0.86) / tex.width, (h * 0.58) / tex.height);
-    this.bossY = h * 0.42;
-    this.bossRoot.position.set(w / 2, this.bossY);
+    // Stands on a floor line; the body's middle sits around 42% down the screen.
+    this.floorY = h * 0.42 + (tex.height * this.baseScale) / 2;
+    this.creature.scale = this.baseScale;
+    this.creature.range = w * (this.boss.light ? 0.2 : 0.11);
+    this.creature.root.position.set(w / 2, this.floorY);
   }
 
   /**
@@ -675,13 +672,13 @@ export class RaidScene {
    * blur filter every frame: the glow is just a scaled-up sprite afterwards.
    */
   private bakeGlow(tex: Texture): Texture {
-    const shrink = 0.25;
+    const shrink = GLOW_SHRINK;
     const src = new Sprite(tex);
     src.scale.set(shrink);
     const silhouette = new ColorMatrixFilter();
     silhouette.matrix = [0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0];
     src.filters = [silhouette, new BlurFilter({ strength: 10, quality: 4 })];
-    const pad = 40;
+    const pad = GLOW_PAD;
     const holder = new Container();
     src.position.set(pad, pad);
     holder.addChild(src);
@@ -690,7 +687,6 @@ export class RaidScene {
       frame: new Rectangle(0, 0, tex.width * shrink + pad * 2, tex.height * shrink + pad * 2),
     });
     holder.destroy({ children: true });
-    this.glowScale = 1 / shrink;
     return baked;
   }
 
@@ -750,9 +746,10 @@ export class RaidScene {
     const lvl = this.windupLevel;
     this.aura.clear();
     if (lvl < 0.02) return;
-    const r = this.bossSprite.texture.height * this.baseScale * this.shownScale * (0.45 + pulse * 0.05);
+    const r = this.creature.height * (0.45 + pulse * 0.05);
+    const { bx, by } = this.bossCenter();
     for (let i = 0; i < 4; i++) {
-      this.aura.circle(0, 10, r * (1 + i * 0.12)).fill({ color: 0xff2a1f, alpha: 0.07 * lvl });
+      this.aura.circle(bx, by + 10, r * (1 + i * 0.12)).fill({ color: 0xff2a1f, alpha: 0.07 * lvl });
     }
   }
 
@@ -773,7 +770,7 @@ export class RaidScene {
   private spawn(
     x: number,
     y: number,
-    o: { vx: number; vy: number; colors: number[]; life: number; gravity: number; add?: boolean; scale?: number; tex?: Texture },
+    o: { vx: number; vy: number; colors: number[]; life: number; gravity: number; add?: boolean; scale?: number; tex?: Texture; alpha?: number },
   ) {
     if (this.particles.length > 700) return;
     const s = this.take();
@@ -795,7 +792,7 @@ export class RaidScene {
       max: o.life,
       scale0: scale * rand(0.6, 1.2),
       scale1: scale * 0.15,
-      alpha0: 1,
+      alpha0: o.alpha ?? 1,
     });
   }
 
@@ -896,32 +893,56 @@ export class RaidScene {
     this.app.ticker.add(tick);
   }
 
-  /** Slices the boss sprite into fragments that fly apart. */
+  /** Dust kicked up when the enemy lands; bosses shake the room. */
+  private landed(strength: number) {
+    const c = this.creature.center();
+    const spread = this.creature.height * 0.25;
+    const n = Math.round(8 + strength * 22);
+    for (let i = 0; i < n; i++) {
+      const side = Math.random() < 0.5 ? -1 : 1;
+      this.spawn(c.x + side * rand(0, spread), this.floorY - rand(0, 10), {
+        vx: side * rand(80, 420) * (0.5 + strength),
+        vy: rand(-140, -20),
+        colors: [0xd9cfc0, 0xa89f92, 0x6f675e],
+        life: rand(0.4, 0.8),
+        gravity: 160,
+        scale: rand(0.6, 1.3),
+        alpha: 0.4,
+      });
+    }
+    if (!this.boss.light) this.shake = Math.max(this.shake, 4 + strength * 12);
+    this.boss.onStomp?.(strength);
+  }
+
+  /** Slices the enemy into fragments that fly apart, matching its current pose. */
   private shatter() {
-    const tex = this.bossSprite.texture;
+    const body = this.creature.body;
+    const tex = body.texture;
     const cols = 7;
     const rows = 9;
     const fw = tex.frame.width / cols;
     const fh = tex.frame.height / rows;
-    const src = this.bossSprite;
-    const sx = src.scale.x;
-    const sy = src.scale.y;
-    const { bx, by } = this.bossCenter();
-    const cx = bx + src.x;
-    const cy = by + src.y;
+    const wt = body.worldTransform;
+    const sx = Math.hypot(wt.a, wt.b);
+    const sy = Math.hypot(wt.c, wt.d);
+    const rotation = Math.atan2(wt.b, wt.a);
+    // A creature facing left is mirrored, and its pieces must be too.
+    const flip = wt.a * wt.d - wt.b * wt.c < 0 ? -1 : 1;
+    this.creature.freeze();
 
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         const frame = new Rectangle(tex.frame.x + c * fw, tex.frame.y + r * fh, fw, fh);
         const piece = new Sprite(new Texture({ source: tex.source, frame }));
         piece.anchor.set(0.5);
-        const lx = (c + 0.5) * fw - tex.frame.width / 2;
-        const ly = (r + 0.5) * fh - tex.frame.height / 2;
-        piece.position.set(cx + lx * sx, cy + ly * sy);
-        piece.scale.set(sx, sy);
+        const lx = (c + 0.5) * fw;
+        const ly = (r + 0.5) * fh;
+        piece.position.copyFrom(this.fx.toLocal(body.toGlobal(new Point(lx, ly))));
+        piece.rotation = rotation;
+        piece.scale.set(sx * flip, sy);
         this.fx.addChild(piece);
-        const dx = lx / (tex.frame.width / 2);
-        const dy = ly / (tex.frame.height / 2);
+        const dx = (lx - tex.frame.width / 2) / (tex.frame.width / 2);
+        const dy = (ly - tex.frame.height / 2) / (tex.frame.height / 2);
         const speed = rand(300, 900);
         this.particles.push({
           sprite: piece,
@@ -938,8 +959,7 @@ export class RaidScene {
         });
       }
     }
-    this.bossSprite.visible = false;
-    this.glow.visible = false;
+    this.creature.root.visible = false;
     this.aura.visible = false;
   }
 }

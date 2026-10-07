@@ -52,7 +52,7 @@ Most chore apps gamify the *list*: you tick a box and get a sticker. Chore Raid 
 
 Your eyes are on the laundry, not the phone, so the game is audio-first:
 
-- **Spoken progress** in a deadpan boss voice: "Halfway. 10 dishes left." "The Hydra regrows a head. 3 dishes in 60 seconds."
+- **A real narrator:** every line is pre-recorded in a natural voice, not the phone's robotic one. Spoken progress, deadpan as ever: "Halfway. 10 dishes left." "The Hydra regrows a head. 3 dishes in 60 seconds."
 - **Synthesized sound effects** for every hit, combo, wind-up tick, crit, heal, heartbeat at low HP and death.
 - **Haptics** on hits (Android).
 - **Optional voice hits:** say "hit", "done" or "next" instead of tapping. The mic pauses while the game is talking, so it never hears itself.
@@ -67,19 +67,20 @@ Your hands are full of laundry, so the input is one tap (or one word), but every
 - **Combos unlock specials:** at ×3, lightning strikes the boss; at ×4, an ultimate X-slash in slow motion.
 - **The boss fights back.** Stall for too long and it lunges at you: the screen shakes, claw marks rake across it, and your phone buzzes. Hit back right after for a **COUNTER**. (It's all cosmetic: HP never changes except by finishing items.)
 - **Wind-ups are boss charge attacks.** Finish the items in time to **PARRY** for a critical; miss and it lands the blow and heals its Ward.
+- **Enemies feel alive.** Each painted character is a deformable mesh: feet planted, the body bends, breathes and wobbles where you hit it. Minions bounce, hop around the arena, turn and taunt; bosses stomp (with dust and screen shake), roar, rear back before a blow and lunge at the camera. Start a washer and the minion falls asleep until the cycle ends.
 - **The boss breaks apart as you work:** each boss has damage stages, and the last item triggers a **finisher**: a spinning double slash, then the boss shatters.
 
 ## How AI was used
 
 - **Code:** written with Claude Code (Anthropic) during the build window, from a plan we wrote together ([PLAN.md](PLAN.md)). I made the design calls (the HP-is-sacred rule, the deadpan tone, the art direction); Claude implemented, tested and iterated.
 - **Art:** the painted boss art was generated with **Bloom** from our own art-direction brief ([docs/ART_DIRECTION.md](docs/ART_DIRECTION.md)), then cut out into game sprites with a small script ([tools/cutout.py](tools/cutout.py)).
-- **Audio and voice:** no AI audio. Sound effects are synthesized in code with the Web Audio API, and speech uses the browser's built-in text-to-speech.
+- **Voice:** the narrator is recorded ahead of time with **Kokoro**, an open-weights text-to-speech model (Apache 2.0), one clip per sentence ([tools/narrate.py](tools/narrate.py)). A test checks that every line the game can say has a recording. Sound effects are synthesized in code with the Web Audio API (no audio files).
 
 ## Tech
 
 - Vite + React 19 + TypeScript, Tailwind CSS v4, Motion for UI animation
 - PixiJS 8 for the raid scene
-- Web Audio API (synthesized SFX), Web Speech API (speech + voice hits), Wake Lock API, Vibration API
+- Web Audio API (synthesized SFX), Web Speech API (voice hits, and a fallback voice for custom bosses), Wake Lock API, Vibration API
 - IndexedDB for everything (raids, photos, loot). **No backend, no account:** your photos never leave your phone.
 - Vitest for the game logic: the raid reducer is pure and tested, including the HP rule, combos, wind-ups and loot odds.
 - Hosted on Netlify

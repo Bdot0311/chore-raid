@@ -13,6 +13,7 @@ class Sfx {
   private volume = 0.8;
   private muted = false;
   private ducked = false;
+  private voiceGain?: GainNode;
 
   unlock() {
     if (!this.ctx) {
@@ -47,10 +48,22 @@ class Sfx {
     this.applyGain();
   }
 
+  /** The narrator's output: follows the volume setting but is never ducked. */
+  voiceOut(): { ctx: AudioContext; out: GainNode } | undefined {
+    if (!this.ctx || this.ctx.state !== 'running') return undefined;
+    if (!this.voiceGain) {
+      this.voiceGain = this.ctx.createGain();
+      this.voiceGain.connect(this.ctx.destination);
+      this.applyGain();
+    }
+    return { ctx: this.ctx, out: this.voiceGain };
+  }
+
   private applyGain() {
     if (!this.master || !this.ctx) return;
     const v = this.muted ? 0 : this.volume * (this.ducked ? 0.35 : 1);
     this.master.gain.setTargetAtTime(v, this.ctx.currentTime, 0.05);
+    this.voiceGain?.gain.setTargetAtTime(this.muted ? 0 : Math.min(1, this.volume * 1.2), this.ctx.currentTime, 0.05);
   }
 
   private get ready() {
@@ -120,6 +133,28 @@ class Sfx {
     this.tone(big ? 70 : 95, t, 0.5, { wave: 'sawtooth', gain: 0.22, to: big ? 40 : 55, attack: 0.05 });
     this.burst(t, 0.35, { type: 'lowpass', freq: 900, to: 120, gain: 0.5 });
     this.tone(48, t + 0.05, 0.3, { gain: 0.7, to: 30 });
+  }
+
+  /** Footfalls: a heavy boss stomp, or a minion's little boing. */
+  stomp(strength: number, light: boolean) {
+    if (!this.ready) return;
+    const t = this.now;
+    if (light) {
+      this.tone(220, t, 0.12, { wave: 'sine', gain: 0.12 + strength * 0.15, to: 520 });
+      this.burst(t, 0.05, { type: 'lowpass', freq: 600, gain: 0.12 });
+      return;
+    }
+    this.tone(55, t, 0.25, { gain: 0.35 + strength * 0.4, to: 32 });
+    this.burst(t, 0.18, { type: 'lowpass', freq: 500, to: 90, gain: 0.25 + strength * 0.3 });
+  }
+
+  /** A boss's roar: two detuned growls swelling and falling. */
+  roar() {
+    if (!this.ready) return;
+    const t = this.now;
+    this.tone(85, t, 0.8, { wave: 'sawtooth', gain: 0.18, to: 55, attack: 0.15 });
+    this.tone(91, t, 0.8, { wave: 'sawtooth', gain: 0.14, to: 50, attack: 0.18 });
+    this.burst(t, 0.7, { type: 'bandpass', freq: 400, to: 180, q: 1.5, gain: 0.25 });
   }
 
   lightning() {

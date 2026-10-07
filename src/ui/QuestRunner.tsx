@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { sfx } from '../audio/sfx';
 import { speech } from '../audio/speech';
+import { say } from '../game/narration';
 import { unitWord } from '../game/bosses';
 import {
   currentStep,
@@ -175,7 +176,7 @@ function TimerStep({ quest, step, foe, weaponId, onStart, onDone, onExit }: {
       rang.current = true;
       sfx.alarm();
       navigator.vibrate?.([200, 100, 200, 100, 400]);
-      speech.say(`${step.title}: the cycle is done. Back to the fight.`);
+      speech.say(say.cycleDone);
       if (document.visibilityState === 'hidden' && 'Notification' in window && Notification.permission === 'granted') {
         new Notification('Chore Raid: cycle done', { body: `${step.title} is finished. Your next step is ready.`, tag: quest.id });
       }
@@ -423,7 +424,7 @@ export function QuestRunner({ initial, profile, onProfile, onSettings, onBossVic
     const key = `${quest.level}:${quest.step}`;
     if (lastSpoken.current === key) return;
     lastSpoken.current = key;
-    if (step.kind !== 'fight' || !quest.raidId) speech.interrupt(`${step.title}. ${step.instruction}`);
+    if (step.kind !== 'fight' || !quest.raidId) speech.interrupt(say.step(step.title, step.instruction));
   }, [quest.level, quest.step, quest.status, quest.raidId, step, clear]);
 
   // Load the fight in progress, if this step has one.
@@ -471,12 +472,12 @@ export function QuestRunner({ initial, profile, onProfile, onSettings, onBossVic
           unlocked: leveled ? WEAPONS.find((w) => w.unlockLevel > levelBefore && w.unlockLevel <= levelAfter)?.name : undefined,
           questDone,
         });
-        speech.interrupt(questDone ? `${r.name} is yours. Well done, ${profile.heroName || 'hero'}.` : 'Level cleared. Take a breath. Then the next one.');
+        speech.interrupt(questDone ? say.questCleared(r.name) : say.levelCleared);
       } else if (leveled) {
-        speech.say(`Level up. You are now level ${levelAfter}.`);
+        speech.say(say.levelUp(levelAfter));
       }
     },
-    [profile.xp, profile.heroName, onProfile, r.name],
+    [profile.xp, onProfile, r.name],
   );
 
   // A fight won just before a reload never reached the quest: hand it off once.

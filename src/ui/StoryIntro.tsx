@@ -2,26 +2,14 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { speech } from '../audio/speech';
 import { unlockAudio } from '../audio/unlock';
+import { say, STORY_PANELS } from '../game/narration';
 import { btn } from './ui';
 
 interface Props {
   onDone: (heroName: string) => void;
 }
 
-const PANELS = [
-  {
-    art: '/art/story-1.webp',
-    text: 'One ordinary evening, the Mess King moved in. Nobody invited him. He brought laundry.',
-  },
-  {
-    art: '/art/story-2.webp',
-    text: 'Every home has a hero. In the hall closet, under three coats and a lost umbrella, the Broomblade was waiting. For you.',
-  },
-  {
-    art: '/art/world-map.webp',
-    text: 'Three lairs. Three bosses. One very messy home. Win them back, and the Mess King has nowhere left to sit.',
-  },
-];
+const PANELS = STORY_PANELS;
 
 /** The opening: three painted panels with narration, then the hero picks a name. */
 export function StoryIntro({ onDone }: Props) {
@@ -99,7 +87,7 @@ export function StoryIntro({ onDone }: Props) {
               onClick={() => {
                 unlockAudio();
                 const hero = name.trim() || 'Hero';
-                speech.interrupt(`Welcome, ${hero}. The Laundry Lair is first. Probably.`);
+                speech.interrupt(say.welcome);
                 onDone(hero);
               }}
             >

@@ -1,5 +1,6 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
-import { bossMaterial, loadArena, loadBossStages, loadWeapon } from '../game/bossArt';
+import { sfx } from '../audio/sfx';
+import { bossIsLight, bossMaterial, loadArena, loadBossStages, loadWeapon } from '../game/bossArt';
 import type { BossDef } from '../game/types';
 import { weapon as weaponDef } from '../game/progression';
 import { RaidScene } from '../scene/RaidScene';
@@ -33,6 +34,9 @@ export const RaidStage = forwardRef<StageHandle, Props>(function RaidStage({ bos
         arena,
         weapon,
         material: bossMaterial(boss),
+        light: bossIsLight(boss),
+        onStomp: (strength) => sfx.stomp(strength, bossIsLight(boss)),
+        onRoar: () => sfx.roar(),
         onBossAttack: (big) => attackCb.current?.(big),
         passive,
         weaponTint: weaponDef(weaponId ?? '').tint,
