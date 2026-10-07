@@ -110,7 +110,7 @@ function TaskStep({ quest, step, foe, weaponId, onDone, onExit }: {
   };
   return (
     <div className="relative h-full overflow-hidden bg-dungeon-950">
-      <RaidStage ref={stage} boss={foe} hpPct={1} passive weaponId={weaponId} />
+      <RaidStage ref={stage} boss={foe} hpPct={1} passive weaponId={weaponId} spot={quest.step} />
       <div className="safe-pad pointer-events-none relative flex h-full flex-col">
         <div className="pointer-events-auto">
           <QuestHeader quest={quest} onExit={onExit} />
@@ -210,7 +210,7 @@ function TimerStep({ quest, step, foe, weaponId, onStart, onDone, onExit }: {
 
   return (
     <div className="relative h-full overflow-hidden bg-dungeon-950">
-      <RaidStage ref={stage} boss={foe} hpPct={1} passive weaponId={weaponId} />
+      <RaidStage ref={stage} boss={foe} hpPct={1} passive weaponId={weaponId} spot={quest.step} />
       <div className="safe-pad pointer-events-none relative flex h-full flex-col">
         <div className="pointer-events-auto">
           <QuestHeader quest={quest} onExit={onExit} />
@@ -553,6 +553,7 @@ export function QuestRunner({ initial, profile, onProfile, onSettings, onBossVic
           settings={profile.settings}
           onSettings={onSettings}
           weaponId={weaponId}
+          spot={quest.step}
           stepLabel={`${levelName(quest, quest.level)} · Step ${quest.step + 1}/${stepsFor(quest).length}`}
           onLeave={onExit}
           onWin={(won) => void winFight(won)}

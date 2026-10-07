@@ -56,7 +56,7 @@ export const CAMPAIGN_ENEMIES: BossDef[] = [
     id: 'sock-goblin',
     kind: 'laundry',
     art: 'sock-goblin',
-    name: 'The Sock Goblins',
+    name: 'The Sock Skeletons',
     chore: 'Laundry',
     unit: 'item',
     unitPlural: 'items',
@@ -82,7 +82,7 @@ export const CAMPAIGN_ENEMIES: BossDef[] = [
     id: 'dust-bunny',
     kind: 'clutter',
     art: 'dust-bunny',
-    name: 'The Dust Bunny Brute',
+    name: 'The Dust Brutes',
     chore: 'Tidying',
     unit: 'thing',
     unitPlural: 'things',
@@ -129,14 +129,14 @@ export const REGIONS: RegionDef[] = [
     maxLevels: 6,
     namedLevels: false,
     intro:
-      'The Laundry Lair. The Sock Goblins guard every load, and the Laundry Leviathan waits in the last one. It has been waiting a while. It is fine with that.',
+      'The Laundry Lair. The Sock Skeletons guard every load, and the Laundry Lich waits in the last one. It has been waiting a while. It is fine with that.',
     arena: '/art/arena-laundry.webp',
     steps: (boss) => [
       {
         id: 'gather',
         kind: 'task',
         title: 'Gather the load',
-        instruction: 'Grab everything for this load and bring it to the washer. Check under the bed. The goblins hide socks there.',
+        instruction: 'Grab everything for this load and bring it to the washer. Check under the bed. The skeletons hide socks there.',
         enemyId: 'sock-goblin',
         xp: 20,
       },
@@ -169,7 +169,7 @@ export const REGIONS: RegionDef[] = [
       {
         id: 'fold',
         kind: 'fight',
-        title: boss ? 'BOSS: Fold the Leviathan' : 'Fold it',
+        title: boss ? 'BOSS: Fold the Lich' : 'Fold it',
         instruction: 'Fold one item, land one hit. Count the load first.',
         enemyId: boss ? 'laundry' : 'sock-goblin',
         countPrompt: 'How many items in this load?',
@@ -200,7 +200,7 @@ export const REGIONS: RegionDef[] = [
     maxLevels: 4,
     namedLevels: false,
     intro:
-      'The Sink Caverns. Grease Gremlins guard the counters, and the Sink Hydra lurks under the suds. It has three heads and no manners.',
+      'The Sink Caverns. Grease Gremlins guard the counters, and the Sink Warlord lurks under the suds. It has one axe and no manners.',
     arena: '/art/arena-dishes.webp',
     steps: (boss) => [
       {
@@ -222,7 +222,7 @@ export const REGIONS: RegionDef[] = [
       {
         id: 'wash',
         kind: 'fight',
-        title: boss ? 'BOSS: Wash the Hydra' : 'Wash up',
+        title: boss ? 'BOSS: Wash the Warlord' : 'Wash up',
         instruction: 'Wash one dish (or load it in the dishwasher), land one hit.',
         enemyId: boss ? 'dishes' : 'grease-gremlin',
         countPrompt: 'How many dishes?',
@@ -261,7 +261,7 @@ export const REGIONS: RegionDef[] = [
     maxLevels: 6,
     namedLevels: true,
     intro:
-      'The Clutter Keep. Every room is held by a Dust Bunny Brute, and the Clutter Golem guards the last one. It is mostly cables.',
+      'The Clutter Keep. Every room is held by a Dust Brute, and the Clutter Colossus guards the last one. It is mostly cables.',
     arena: '/art/arena-clutter.webp',
     steps: (boss) => [
       {
@@ -283,7 +283,7 @@ export const REGIONS: RegionDef[] = [
       {
         id: 'putaway',
         kind: 'fight',
-        title: boss ? 'BOSS: Dismantle the Golem' : 'Put things back',
+        title: boss ? 'BOSS: Topple the Colossus' : 'Put things back',
         instruction: 'Put one thing back where it lives, land one hit.',
         enemyId: boss ? 'clutter' : 'dust-bunny',
         countPrompt: 'How many things are out of place?',

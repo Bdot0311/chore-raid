@@ -1,10 +1,14 @@
 import { motion } from 'motion/react';
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { speech } from '../audio/speech';
 import { bossSpriteUrl } from '../game/bossArt';
 import { enemy, region } from '../game/campaign';
 import { dailyBounty } from '../game/progression';
 import type { RegionId } from '../game/types';
+import { enemyFor } from '../world/cast';
+import { preloadTown } from '../world/Town';
+import { preloadWorld } from '../world/World';
+import { HeroContext } from './RaidStage';
 import { btn } from './ui';
 
 interface Props {
@@ -21,6 +25,13 @@ export function RegionStart({ regionId, cleared, onStart, onBack }: Props) {
   const r = region(regionId);
   const boss = enemy(r.bossId);
   const minion = enemy(r.minionId);
+  const heroId = useContext(HeroContext);
+
+  // Load the town and the lair while the player picks how many loads.
+  useEffect(() => {
+    preloadTown(heroId);
+    preloadWorld(enemyFor(minion), heroId);
+  }, [minion, heroId]);
   const [levels, setLevels] = useState(r.defaultLevels);
   const [rooms, setRooms] = useState<string[]>(['Bedroom', 'Living room']);
   const bounty = dailyBounty(Date.now()) === regionId;

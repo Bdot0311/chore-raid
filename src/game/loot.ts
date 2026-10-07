@@ -35,19 +35,19 @@ export function rollRarity(stars: number, rand: () => number = Math.random): Rar
 const TROPHIES: Record<BossKind, Record<Rarity, string[]>> = {
   laundry: {
     common: ['Lint Ball', 'Orphaned Sock', 'Crumpled Receipt'],
-    rare: ["Leviathan's Lost Sock", 'Static-Charged Sweater'],
+    rare: ["Lich's Lost Sock", 'Static-Charged Sweater'],
     epic: ['Hoodie of Mild Contempt', 'Fitted Sheet, Defeated'],
     legendary: ['The Matching Pair'],
   },
   dishes: {
     common: ['Soggy Sponge', 'Bent Fork', 'Lonely Lid'],
-    rare: ['Hydra Tooth (Fork)', 'Gleaming Ladle'],
-    epic: ['Plate of the Third Head', 'Grease-Proof Gauntlet'],
+    rare: ['Warlord Tooth (Fork)', 'Gleaming Ladle'],
+    epic: ['Shield of the Sink', 'Grease-Proof Gauntlet'],
     legendary: ['The Empty Sink'],
   },
   clutter: {
     common: ['Mystery Cable', 'Single Battery', 'Pen (Dead)'],
-    rare: ['Golem Shoe', 'Box of Old Chargers'],
+    rare: ['Colossus Shoe', 'Box of Old Chargers'],
     epic: ['Lamp of Reclamation', 'Mug of Many Coffees'],
     legendary: ['The Visible Floor'],
   },

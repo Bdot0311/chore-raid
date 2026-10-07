@@ -3,10 +3,11 @@ import { useEffect, useState } from 'react';
 import { speech } from '../audio/speech';
 import { unlockAudio } from '../audio/unlock';
 import { say, STORY_PANELS } from '../game/narration';
+import { HeroPicker } from './HeroPicker';
 import { btn } from './ui';
 
 interface Props {
-  onDone: (heroName: string) => void;
+  onDone: (heroName: string, heroClass: string) => void;
 }
 
 const PANELS = STORY_PANELS;
@@ -15,6 +16,7 @@ const PANELS = STORY_PANELS;
 export function StoryIntro({ onDone }: Props) {
   const [i, setI] = useState(0);
   const [name, setName] = useState('');
+  const [heroClass, setHeroClass] = useState('Knight');
   const naming = i === PANELS.length;
   const panel = PANELS[Math.min(i, PANELS.length - 1)];
 
@@ -71,16 +73,16 @@ export function StoryIntro({ onDone }: Props) {
           <motion.div className="space-y-5 pb-2" initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
             <div className="text-center">
               <p className="font-display text-lg tracking-widest text-gold">THE HERO</p>
-              <h1 className="mt-1 font-display text-4xl leading-tight text-white drop-shadow-lg">What should we call you?</h1>
-              <p className="mt-2 text-ash">Any name works. The Mess King will get it wrong anyway.</p>
+              <h1 className="mt-1 font-display text-4xl leading-tight text-white drop-shadow-lg">Who are you?</h1>
+              <p className="mt-2 text-ash">Pick a hero and a name. The Mess King will get it wrong anyway.</p>
             </div>
+            <HeroPicker value={heroClass} onChange={setHeroClass} />
             <input
               className="w-full rounded-2xl bg-black/50 px-5 py-4 text-center font-display text-3xl text-white ring-2 ring-white/15 outline-none placeholder:text-white/30 focus:ring-gold"
               placeholder="Hero"
               maxLength={20}
               value={name}
               onChange={(e) => setName(e.target.value)}
-              autoFocus
             />
             <button
               className={btn.primary}
@@ -88,10 +90,10 @@ export function StoryIntro({ onDone }: Props) {
                 unlockAudio();
                 const hero = name.trim() || 'Hero';
                 speech.interrupt(say.welcome);
-                onDone(hero);
+                onDone(hero, heroClass);
               }}
             >
-              TAKE UP THE BROOMBLADE
+              BEGIN THE ADVENTURE
             </button>
           </motion.div>
         ) : (

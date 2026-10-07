@@ -99,6 +99,8 @@ export interface Profile {
   settings: Settings;
   /** Campaign progression. */
   heroName: string;
+  /** Which hero model the player chose (src/world/cast.ts). */
+  heroClass: string;
   storySeen: boolean;
   xp: number;
   /** Region ids whose boss has been defeated in the campaign. */

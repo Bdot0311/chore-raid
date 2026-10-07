@@ -1,16 +1,18 @@
 import { motion } from 'motion/react';
 import { heroLevel, WEAPONS } from '../game/progression';
 import type { Profile } from '../game/types';
+import { HeroPicker } from './HeroPicker';
 import { XpBar } from './XpBar';
 
 interface Props {
   profile: Profile;
   onEquip: (weaponId: string) => void;
+  onHero: (heroClass: string) => void;
   onBack: () => void;
 }
 
 /** Weapons unlock with hero levels; each one changes the blade and its slash trails. */
-export function Armory({ profile, onEquip, onBack }: Props) {
+export function Armory({ profile, onEquip, onHero, onBack }: Props) {
   const level = heroLevel(profile.xp);
   const equipped = WEAPONS.some((w) => w.id === profile.equippedSkin) ? profile.equippedSkin : 'broomblade';
 
@@ -25,6 +27,11 @@ export function Armory({ profile, onEquip, onBack }: Props) {
           <p className="mt-1 text-sm text-ash">Level up by finishing chores to unlock new weapons.</p>
         </header>
         <XpBar xp={profile.xp} />
+        <section className="space-y-2">
+          <h2 className="font-display text-xl text-white">Your hero</h2>
+          <HeroPicker value={profile.heroClass} onChange={onHero} />
+        </section>
+        <h2 className="font-display text-xl text-white">Weapon glow</h2>
         <div className="space-y-3 pb-2">
           {WEAPONS.map((w, i) => {
             const unlocked = level >= w.unlockLevel;

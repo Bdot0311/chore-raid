@@ -24,11 +24,13 @@ interface Props {
   /** Shown above the boss name inside a quest: "Load 2 of 3 · Step 5/6". */
   stepLabel?: string;
   weaponId?: string;
+  /** Which encounter along the lair hall (quest step). */
+  spot?: number;
 }
 
 const HEARTBEAT_BELOW = 0.2;
 
-export function RaidScreen({ boss, initial, settings, onSettings, onWin, onLeave, stepLabel, weaponId }: Props) {
+export function RaidScreen({ boss, initial, settings, onSettings, onWin, onLeave, stepLabel, weaponId, spot }: Props) {
   const stage = useRef<StageHandle>(null);
   const root = useRef<HTMLDivElement>(null);
   const lastPoint = useRef<{ x: number; y: number } | null>(null);
@@ -196,6 +198,7 @@ export function RaidScreen({ boss, initial, settings, onSettings, onWin, onLeave
         boss={boss}
         hpPct={hpPct}
         weaponId={weaponId}
+        spot={spot}
         onBossAttack={(big) => {
           sfx.bossAttack(big);
           navigator.vibrate?.(big ? [120, 50, 120] : 90);

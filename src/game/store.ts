@@ -15,6 +15,7 @@ export const DEFAULT_PROFILE: Profile = {
   equippedSkin: 'default',
   settings: { muted: false, voiceHits: false, speech: true, volume: 0.8 },
   heroName: '',
+  heroClass: 'Knight',
   storySeen: false,
   xp: 0,
   regionsCleared: [],

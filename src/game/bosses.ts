@@ -4,7 +4,7 @@ export const BUILT_IN_BOSSES: BossDef[] = [
   {
     id: 'laundry',
     kind: 'laundry',
-    name: 'The Laundry Leviathan',
+    name: 'The Laundry Lich',
     chore: 'Fold the laundry',
     unit: 'item',
     unitPlural: 'items',
@@ -16,7 +16,7 @@ export const BUILT_IN_BOSSES: BossDef[] = [
   {
     id: 'dishes',
     kind: 'dishes',
-    name: 'The Sink Hydra',
+    name: 'The Sink Warlord',
     chore: 'Wash the dishes',
     unit: 'dish',
     unitPlural: 'dishes',
@@ -28,7 +28,7 @@ export const BUILT_IN_BOSSES: BossDef[] = [
   {
     id: 'clutter',
     kind: 'clutter',
-    name: 'The Clutter Golem',
+    name: 'The Clutter Colossus',
     chore: 'Put the clutter away',
     unit: 'thing',
     unitPlural: 'things',
