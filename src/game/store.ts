@@ -1,10 +1,12 @@
 import * as db from '../lib/db';
 import { newId } from '../lib/id';
 import { BUILT_IN_BOSSES } from './bosses';
+import { createDuel, PACE, type Duel } from './duel';
 import { createRaid } from './raidReducer';
 import { createQuest } from './campaign';
 import { rollLoot } from './loot';
 import { touchStreak } from './progression';
+import { MAX_LOOT_STARS } from './tuning';
 import type { BossDef, LootItem, Profile, Quest, Raid, RegionId } from './types';
 
 const PROFILE_KEY = 'me';
@@ -51,12 +53,12 @@ export function saveRaid(raid: Raid) {
 }
 
 /** Only one raid runs at a time: any raid left active is abandoned. */
-export async function startRaid(bossId: string, maxHp: number, questId?: string): Promise<Raid> {
+export async function startRaid(bossId: string, maxHp: number, questId?: string, duel?: Duel): Promise<Raid> {
   const now = Date.now();
   for (const old of await db.getAllByIndex('raids', 'status', 'active')) {
     await db.put('raids', { ...old, status: 'abandoned', endedAt: now });
   }
-  const raid: Raid = { ...createRaid(newId(), bossId, maxHp, now), questId };
+  const raid: Raid = { ...createRaid(newId(), bossId, maxHp, now, Math.random, duel ?? createDuel(now, PACE.bossFight)), questId };
   await db.put('raids', raid);
   return raid;
 }
@@ -74,7 +76,10 @@ export async function finishRaid(raid: Raid, boss: BossDef): Promise<{ raid: Rai
   const existing = raid.lootId ? await db.get('loot', raid.lootId) : undefined;
   if (existing) return { raid, loot: existing, profile: await loadProfile() };
 
-  const loot = rollLoot(boss.kind, raid.lootStars, raid.id, newId(), Date.now());
+  // FLAWLESS: not a single blow taken in the fight earns an extra Loot Star.
+  const flawless = !!raid.duel && raid.duel.hitsTaken === 0;
+  const stars = flawless ? Math.min(MAX_LOOT_STARS, raid.lootStars + 1) : raid.lootStars;
+  const loot = rollLoot(boss.kind, stars, raid.id, newId(), Date.now());
   const done: Raid = { ...raid, lootId: loot.id };
   await db.put('loot', loot);
   await db.put('raids', done);

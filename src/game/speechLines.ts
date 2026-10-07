@@ -8,8 +8,10 @@ import { unitWord } from './bosses';
 
 interface LineBank {
   start: string[];
-  /** Said when the boss lashes out because you stalled. */
+  /** Said when the boss's blow lands on the hero. */
   attack: string[];
+  /** Said when the boss starts charging a blow. */
+  charge: string[];
   windup: string[];
   beaten: string[];
   missed: string[];
@@ -19,6 +21,12 @@ interface LineBank {
 
 const pick = <T,>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)];
 
+/** Lines for the enemy fighting back, shared by every minion. */
+const MINION_CHARGE = ['A skeleton is winding up.', 'The skeleton raises its blade.', 'Something rattles. It is winding up.'];
+const MINION_STRUCK = ['Ouch. The skeleton got you.', 'You took a blow. Keep going.'];
+const INTERRUPT = ['Interrupted. Nice.', 'You struck first.', 'Too slow for you.'];
+const KNOCKDOWN = ['You are down. Get up. The chore is still here.', 'Knocked down. A Loot Star rolls away. Up you get.'];
+
 const BANKS: Record<BossKind, LineBank> = {
   laundry: {
     start: [
@@ -26,6 +34,7 @@ const BANKS: Record<BossKind, LineBank> = {
       'You have disturbed the Laundry Lich. It was napping on your chair.',
     ],
     attack: ['The Lich flings a wet sock spell at you. Keep folding.', 'The Lich lunges. It smells faintly of fabric softener.'],
+    charge: ['The Lich is gathering a spell.', 'The Lich raises its staff. It hums.'],
     windup: [
       'The Lich begins a spell. {n} {units} in {s} seconds. Or it summons a fresh sock.',
       'The Lich is casting. Fold fast. {n} {units} in {s} seconds.',
@@ -41,6 +50,7 @@ const BANKS: Record<BossKind, LineBank> = {
       'The Sink Warlord raises its axe. It is mostly a fork.',
     ],
     attack: ['The Warlord splashes dishwater at you. Keep scrubbing.', 'The Warlord swings a soggy axe at you. Rude.'],
+    charge: ['The Warlord raises its axe.', 'The Warlord is winding up a soggy swing.'],
     windup: [
       'The Warlord raises its shield. {n} {units} in {s} seconds.',
       'The Warlord gathers grease. Scrub fast. {n} {units} in {s} seconds.',
@@ -56,6 +66,7 @@ const BANKS: Record<BossKind, LineBank> = {
       'The Clutter Colossus stands. It has been standing there for weeks. You just noticed.',
     ],
     attack: ['The Colossus swings a mug at you. Keep tidying.', 'The Colossus throws a cable. It is tangled. Of course it is.'],
+    charge: ['The Colossus is winding up.', 'The Colossus lifts its blade. Slowly. Menacingly.'],
     windup: [
       'The Colossus gathers more junk. {n} {units} in {s} seconds.',
       'The Colossus reinforces itself. Tidy fast. {n} {units} in {s} seconds.',
@@ -71,6 +82,7 @@ const BANKS: Record<BossKind, LineBank> = {
       'The Mess King yawns. You have his attention. Barely.',
     ],
     attack: ['The Mess King flicks a crumb at you. It is a big crumb.', 'The Mess King points his plunger at you. Keep going.'],
+    charge: ['The Mess King raises his staff. He sighs first.', 'The Mess King is gathering mess for a blow.'],
     windup: ['The Mess King summons more mess. {n} {units} in {s} seconds.', 'The King rallies the clutter. {n} {units} in {s} seconds.'],
     beaten: ['Critical. The crown slips.', 'Critical. The King sits up straight for once.'],
     missed: ['The Mess King reclines. The mess grows back a little.', 'Too slow. The King looks pleased with himself.'],
@@ -80,6 +92,7 @@ const BANKS: Record<BossKind, LineBank> = {
   custom: {
     start: ['A Mess Elemental appears. It is exactly as annoying as expected.', 'The Mess Elemental awakens. It has no opinion of you.'],
     attack: ['The Elemental lashes out. Keep going.', 'The mess pushes back. Push harder.'],
+    charge: ['The Elemental is winding up.', 'The mess is gathering itself for a blow.'],
     windup: ['The Elemental swells. {n} {units} in {s} seconds.', 'The mess is spreading. {n} {units} in {s} seconds.'],
     beaten: ['Critical. The Elemental shrinks noticeably.', 'Critical. The mess loses ground.'],
     missed: ['The Elemental heals. The mess has opinions after all.', 'Too slow. The Elemental restores its Ward.'],
@@ -109,6 +122,12 @@ export const lines = {
     fill(pick(BANKS[boss.kind].windup), { n: target, units: unitWord(boss, target), s: spokenSeconds(seconds) }),
   beaten: (boss: BossDef) => pick(BANKS[boss.kind].beaten),
   attack: (boss: BossDef) => pick(BANKS[boss.kind].attack),
+  /** The enemy starts charging: flavor, then what to do about it. */
+  charge: (boss: BossDef, minion: boolean, task: boolean) =>
+    `${minion ? pick(MINION_CHARGE) : pick(BANKS[boss.kind].charge)} ${task ? 'Finish this step to strike first.' : 'Finish an item to strike first.'}`,
+  interrupt: () => pick(INTERRUPT),
+  knockdown: () => pick(KNOCKDOWN),
+  struckMinion: () => pick(MINION_STRUCK),
   missed: (boss: BossDef) => pick(BANKS[boss.kind].missed),
   death: (boss: BossDef) => pick(BANKS[boss.kind].death),
   combo: (multiplier: number) => ({ 2: 'Combo.', 3: 'Triple.', 4: 'Unstoppable.' })[multiplier] ?? '',
@@ -129,7 +148,13 @@ export const lines = {
 };
 
 /** Exported for the test that keeps trigger words out of every line. */
-export const ALL_LINE_TEMPLATES = Object.values(BANKS).flatMap((b) => Object.values(b).flat());
+export const ALL_LINE_TEMPLATES = [
+  ...Object.values(BANKS).flatMap((b) => Object.values(b).flat()),
+  ...MINION_CHARGE,
+  ...MINION_STRUCK,
+  ...INTERRUPT,
+  ...KNOCKDOWN,
+];
 
 /**
  * Every sentence the boss lines can produce for the built-in bosses, so the
@@ -139,7 +164,7 @@ export function allBossSentences(bosses: BossDef[]): string[] {
   const out: string[] = [];
   for (const boss of bosses) {
     const bank = BANKS[boss.kind];
-    out.push(...bank.start, ...bank.attack, ...bank.beaten, ...bank.missed, ...bank.lowHp, ...bank.death);
+    out.push(...bank.start, ...bank.attack, ...bank.charge, ...bank.beaten, ...bank.missed, ...bank.lowHp, ...bank.death);
     for (const w of bank.windup) {
       for (let n = 1; n <= 3; n++) {
         for (let sec = 5; sec <= 60; sec += 5) out.push(fill(w, { n, units: unitWord(boss, n), s: sec }));
@@ -151,5 +176,6 @@ export function allBossSentences(bosses: BossDef[]): string[] {
     out.push(`A great many ${boss.unitPlural} stand between you and victory.`, `One ${boss.unit} left. Finish it.`);
   }
   out.push('Combo.', 'Triple.', 'Unstoppable.', 'Combo lost.', 'Raid resumed.', 'Halfway.', 'Three left.');
+  out.push(...MINION_CHARGE, ...MINION_STRUCK, ...INTERRUPT, ...KNOCKDOWN, 'Finish this step to strike first.', 'Finish an item to strike first.');
   return out;
 }

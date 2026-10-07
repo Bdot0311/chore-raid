@@ -11,6 +11,8 @@ import { holdWakeLock } from '../lib/wakeLock';
 import { ComboMeter } from './ComboMeter';
 import { HpBar } from './HpBar';
 import { LootStars } from './LootStars';
+import { enemyFor } from '../world/cast';
+import { ChargeWarning, HeroHealth } from './HeroHealth';
 import { RaidStage, type StageHandle } from './RaidStage';
 import { WindupBanner } from './WindupBanner';
 
@@ -43,6 +45,8 @@ export function RaidScreen({ boss, initial, settings, onSettings, onWin, onLeave
     const id = window.setTimeout(() => setShowTip(false), 8000);
     return () => window.clearTimeout(id);
   }, []);
+
+  const minion = !enemyFor(boss).boss;
 
   const handleEvents = (events: RaidEvent[], raid: Raid) => {
     for (const e of events) {
@@ -88,6 +92,24 @@ export function RaidScreen({ boss, initial, settings, onSettings, onWin, onLeave
           stage.current?.windupResult(false);
           sfx.windupMissed();
           speech.say(lines.missed(boss));
+          break;
+        case 'enemy-charge':
+          stage.current?.enemyCharge();
+          sfx.windupStart();
+          navigator.vibrate?.([40, 60, 40]);
+          speech.say(lines.charge(boss, minion, false));
+          break;
+        case 'interrupt':
+          stage.current?.interrupt();
+          sfx.windupBeaten();
+          speech.say(lines.interrupt());
+          break;
+        case 'hero-struck':
+          stage.current?.heroStruck(e.damage, e.big, events.some((x) => x.type === 'knockdown'));
+          speech.say(minion ? lines.struckMinion() : lines.attack(boss));
+          break;
+        case 'knockdown':
+          speech.say(lines.knockdown());
           break;
         case 'dead':
           setDying(true);
@@ -202,8 +224,6 @@ export function RaidScreen({ boss, initial, settings, onSettings, onWin, onLeave
         onBossAttack={(big) => {
           sfx.bossAttack(big);
           navigator.vibrate?.(big ? [120, 50, 120] : 90);
-          // Taunt now and then, not every time, so the narration stays readable.
-          if (!big && Math.random() < 0.5) speech.say(lines.attack(boss));
         }}
       />
 
@@ -240,6 +260,11 @@ export function RaidScreen({ boss, initial, settings, onSettings, onWin, onLeave
             <div className="mt-2">
               <LootStars stars={raid.lootStars} />
             </div>
+            {raid.duel && (
+              <div className="mt-2">
+                <HeroHealth duel={raid.duel} />
+              </div>
+            )}
           </div>
           <button className={`${iconBtn} pointer-events-auto`} aria-label={settings.muted ? 'Unmute' : 'Mute'} onPointerDown={stop} onClick={toggleMute}>
             {settings.muted ? (
@@ -259,6 +284,7 @@ export function RaidScreen({ boss, initial, settings, onSettings, onWin, onLeave
         <div className="flex-1" />
 
         <div className="space-y-3">
+          <ChargeWarning duel={raid.duel} />
           <WindupBanner raid={raid} unit={(n) => unitWord(boss, n)} />
           {wakeHeld === false && showTip && (
             <p className="rounded-xl bg-black/50 px-3 py-2 text-center text-xs text-ash backdrop-blur">

@@ -1,3 +1,4 @@
+import { createDuel, INTERRUPT_BONUS, PACE } from './duel';
 import { describe, expect, it } from 'vitest';
 import { activeWindup, createRaid, planWindups, raidReducer, type RaidAction } from './raidReducer';
 import { COMBO_WINDOW_MS, HIT_COOLDOWN_MS, STARTING_LOOT_STARS, WINDUP_MS_PER_ITEM } from './tuning';
@@ -138,5 +139,33 @@ describe('wind-ups', () => {
     expect(activeWindup(raid)!.progress).toBe(1);
     raid = raidReducer(raid, { type: 'UNDO' }, t).raid;
     expect(activeWindup(raid)!.progress).toBe(0);
+  });
+});
+
+describe('the enemy fights back', () => {
+  const pace = PACE.bossFight;
+  const fresh = () => createRaid('r', 'laundry', 4, 0, () => 0.5, createDuel(0, pace));
+
+  it('charges and lands a blow on the hero, never touching the boss HP', () => {
+    let raid = fresh();
+    let res = raidReducer(raid, { type: 'TICK' }, pace.intervalMs - pace.chargeMs);
+    expect(res.events).toContainEqual({ type: 'enemy-charge', landsAt: pace.intervalMs });
+    raid = res.raid;
+    res = raidReducer(raid, { type: 'TICK' }, pace.intervalMs);
+    expect(res.events).toContainEqual({ type: 'hero-struck', damage: pace.damage, heroHp: 100 - pace.damage, big: false });
+    expect(res.raid.hp).toBe(4);
+  });
+
+  it('a hit during the charge interrupts it for bonus score', () => {
+    const res = raidReducer(fresh(), { type: 'HIT', source: 'tap' }, pace.intervalMs - 1000);
+    expect(res.events).toContainEqual({ type: 'interrupt', bonus: INTERRUPT_BONUS });
+    expect(res.raid.duel!.nextAttackAt).toBe(pace.intervalMs - 1000 + pace.intervalMs);
+  });
+
+  it('a knockdown costs a Loot Star', () => {
+    const raid = { ...fresh(), duel: { ...createDuel(0, pace), heroHp: 5 } };
+    const res = raidReducer(raid, { type: 'TICK' }, pace.intervalMs);
+    expect(res.events).toContainEqual({ type: 'knockdown', lootStars: raid.lootStars - 1 });
+    expect(res.raid.duel!.heroHp).toBe(100);
   });
 });

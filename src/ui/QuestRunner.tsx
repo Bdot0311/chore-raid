@@ -1,8 +1,10 @@
 import { AnimatePresence, motion } from 'motion/react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { sfx } from '../audio/sfx';
 import { speech } from '../audio/speech';
+import { FLAWLESS_XP, holdUntil, PACE, rest, strike, tick, WAKE_GRACE_MS, withPace, type Duel } from '../game/duel';
 import { say } from '../game/narration';
+import { lines } from '../game/speechLines';
 import { unitWord } from '../game/bosses';
 import {
   currentStep,
@@ -21,6 +23,7 @@ import type { BossDef, Profile, Quest, Raid, Settings } from '../game/types';
 import { MAX_HP } from '../game/tuning';
 import { holdWakeLock } from '../lib/wakeLock';
 import { RaidScreen } from './RaidScreen';
+import { ChargeWarning, HeroHealth } from './HeroHealth';
 import { RaidStage, type StageHandle } from './RaidStage';
 import { btn, panel } from './ui';
 import { XpBar } from './XpBar';
@@ -38,6 +41,7 @@ interface Props {
 interface ClearInfo {
   title: string;
   xp: number;
+  flawless: boolean;
   levelUp?: number;
   unlocked?: string;
   questDone: boolean;
@@ -88,20 +92,87 @@ function QuestHeader({ quest, onExit }: { quest: Quest; onExit: () => void }) {
   );
 }
 
+/**
+ * The minion fights back during a step: it charges on a rhythm and lands blows
+ * on the hero until the step is done. A running machine cycle holds it back
+ * (it naps) until shortly after the cycle ends.
+ */
+function useStepDuel(quest: Quest, foe: BossDef, stage: RefObject<StageHandle | null>, onDuel: (d: Duel) => void, holdTill?: number) {
+  const latest = useRef(quest.duel);
+  latest.current = quest.duel;
+  const report = useRef(onDuel);
+  report.current = onDuel;
+
+  // Each step starts with a full interval before the first charge.
+  useEffect(() => {
+    const d = withPace(latest.current, PACE.task, Date.now());
+    latest.current = d;
+    report.current(d);
+  }, []);
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      let d = latest.current;
+      if (!d) return;
+      const now = Date.now();
+      if (holdTill !== undefined) d = holdUntil(d, holdTill + WAKE_GRACE_MS);
+      const res = tick(d, now);
+      d = res.duel;
+      const knocked = res.events.some((e) => e.type === 'knockdown');
+      for (const e of res.events) {
+        if (e.type === 'charge') {
+          stage.current?.enemyCharge();
+          sfx.windupStart();
+          navigator.vibrate?.([40, 60, 40]);
+          speech.say(lines.charge(foe, true, true));
+        } else if (e.type === 'struck') {
+          stage.current?.heroStruck(e.damage, false, knocked);
+          sfx.bossAttack(false);
+          navigator.vibrate?.(90);
+          speech.say(lines.struckMinion());
+        } else if (e.type === 'knockdown') {
+          speech.say(lines.knockdown());
+        }
+      }
+      if (d !== latest.current) {
+        latest.current = d;
+        report.current(d);
+      }
+    }, 500);
+    return () => window.clearInterval(id);
+  }, [holdTill, stage, foe]);
+
+  /** The step is done: strike first, interrupting a charge if there is one. */
+  return () => {
+    const d = latest.current;
+    if (!d) return;
+    const res = strike(d, Date.now());
+    if (res.events.length) {
+      stage.current?.interrupt();
+      speech.say(lines.interrupt());
+    }
+    latest.current = res.duel;
+    report.current(res.duel);
+  };
+}
+
 /** A quick real-world step: read it, do it, tap DONE, and the minion pops. */
-function TaskStep({ quest, step, foe, weaponId, onDone, onExit }: {
+function TaskStep({ quest, step, foe, weaponId, onDuel, onDone, onExit }: {
   quest: Quest;
   step: StepDef;
   foe: BossDef;
   weaponId: string;
+  onDuel: (d: Duel) => void;
   onDone: () => void;
   onExit: () => void;
 }) {
   const stage = useRef<StageHandle>(null);
   const [busy, setBusy] = useState(false);
+  const strikeFirst = useStepDuel(quest, foe, stage, onDuel);
   const done = async () => {
     if (busy) return;
     setBusy(true);
+    strikeFirst();
     sfx.swing(true);
     sfx.hit(6);
     navigator.vibrate?.([30, 30, 60]);
@@ -116,12 +187,16 @@ function TaskStep({ quest, step, foe, weaponId, onDone, onExit }: {
           <QuestHeader quest={quest} onExit={onExit} />
         </div>
         <div className="flex-1" />
+        <div className="mb-3">
+          <ChargeWarning duel={quest.duel} task />
+        </div>
         <motion.div
           className={`${panel} pointer-events-auto space-y-3`}
           initial={{ y: 60, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ type: 'spring', stiffness: 200, damping: 20 }}
         >
+          {quest.duel && <HeroHealth duel={quest.duel} />}
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-gold">
               {step.finisher ? 'Finishing blow' : `Step ${quest.step + 1}`} · +{step.xp} XP
@@ -139,11 +214,12 @@ function TaskStep({ quest, step, foe, weaponId, onDone, onExit }: {
 }
 
 /** A machine cycle: start the washer, start the timer, go live your life. */
-function TimerStep({ quest, step, foe, weaponId, onStart, onDone, onExit }: {
+function TimerStep({ quest, step, foe, weaponId, onDuel, onStart, onDone, onExit }: {
   quest: Quest;
   step: StepDef;
   foe: BossDef;
   weaponId: string;
+  onDuel: (d: Duel) => void;
   onStart: (minutes: number) => void;
   onDone: () => void;
   onExit: () => void;
@@ -157,6 +233,7 @@ function TimerStep({ quest, step, foe, weaponId, onStart, onDone, onExit }: {
   const finished = running && left <= 0;
   const total = (quest.timerMinutes ?? minutes) * 60_000;
   const rang = useRef(false);
+  const strikeFirst = useStepDuel(quest, foe, stage, onDuel, quest.timerEndsAt);
 
   useEffect(() => {
     if (!running) return;
@@ -198,6 +275,7 @@ function TimerStep({ quest, step, foe, weaponId, onStart, onDone, onExit }: {
   const done = async () => {
     if (busy) return;
     setBusy(true);
+    strikeFirst();
     sfx.swing(true);
     sfx.hit(4);
     await (stage.current?.defeat() ?? Promise.resolve());
@@ -239,7 +317,11 @@ function TimerStep({ quest, step, foe, weaponId, onStart, onDone, onExit }: {
             </div>
           )}
         </div>
+        <div className="mb-3">
+          <ChargeWarning duel={quest.duel} task />
+        </div>
         <motion.div className={`${panel} pointer-events-auto space-y-3`} initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
+          {quest.duel && <HeroHealth duel={quest.duel} />}
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-gold">
               Step {quest.step + 1} · Machine cycle · +{step.xp} XP
@@ -377,6 +459,16 @@ function LevelClear({ info, quest, profile, onNext }: { info: ClearInfo; quest: 
         <motion.p className="font-display text-6xl tabular-nums text-gold drop-shadow-lg" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}>
           +{shown} XP
         </motion.p>
+        {info.flawless && (
+          <motion.p
+            className="rounded-full bg-sky-400/20 px-4 py-1 font-display text-xl tracking-wider text-sky-300 ring-2 ring-sky-300/60"
+            initial={{ scale: 0.4, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.6, type: 'spring' }}
+          >
+            FLAWLESS · +{FLAWLESS_XP} XP
+          </motion.p>
+        )}
         <div className="w-full">
           <XpBar xp={profile.xp} />
         </div>
@@ -445,13 +537,19 @@ export function QuestRunner({ initial, profile, onProfile, onSettings, onBossVic
   const apply = useCallback(
     async (action: QuestAction) => {
       const before = questRef.current;
-      const { quest: next, events } = questReducer(before, action, Date.now());
+      const res = questReducer(before, action, Date.now());
+      let next = res.quest;
+      const events = res.events;
       if (next === before) return;
+      // A cleared level: FLAWLESS if no blow landed, and the hero rests to full health.
+      const cleared = events.some((e) => e.type === 'level-clear');
+      const flawless = cleared && !!before.duel && before.duel.hitsTaken === 0;
+      if (cleared) next = { ...next, duel: rest(next.duel) };
       questRef.current = next;
       setQuest(next);
       await saveQuest(next);
 
-      const xp = events.reduce((sum, e: QuestEvent) => sum + e.xp, 0);
+      const xp = events.reduce((sum, e: QuestEvent) => sum + e.xp, 0) + (flawless ? FLAWLESS_XP : 0);
       if (!xp) return;
       const mult = dailyBounty(Date.now()) === next.region ? 2 : 1;
       const levelBefore = heroLevel(profile.xp);
@@ -468,6 +566,7 @@ export function QuestRunner({ initial, profile, onProfile, onSettings, onBossVic
         setClear({
           title: `${levelName(before, levelEvent.level)} cleared!`,
           xp: xp * mult,
+          flawless,
           levelUp: leveled ? levelAfter : undefined,
           unlocked: leveled ? WEAPONS.find((w) => w.unlockLevel > levelBefore && w.unlockLevel <= levelAfter)?.name : undefined,
           questDone,
@@ -490,15 +589,32 @@ export function QuestRunner({ initial, profile, onProfile, onSettings, onBossVic
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [raid, quest.raidId]);
 
+  const updateDuel = useCallback((duel: Duel) => {
+    const next = { ...questRef.current, duel };
+    questRef.current = next;
+    setQuest(next);
+    void saveQuest(next);
+  }, []);
+
   const beginFight = async (count: number) => {
     sfx.click();
-    const fight = await startRaid(foe.id, count, quest.id);
+    // The hero brings their health into the fight; the fight counts its own blows.
+    const pace = foe.id === r.bossId ? PACE.bossFight : PACE.minionFight;
+    const duel = { ...withPace(questRef.current.duel, pace, Date.now()), hitsTaken: 0 };
+    const fight = await startRaid(foe.id, count, quest.id, duel);
     setRaid(fight);
     await apply({ type: 'START_FIGHT', raidId: fight.id });
   };
 
   const winFight = async (won: Raid) => {
     handedOff.current = won.id;
+    const carried = questRef.current.duel;
+    if (won.duel) {
+      questRef.current = {
+        ...questRef.current,
+        duel: { ...won.duel, pace: PACE.task, hitsTaken: (carried?.hitsTaken ?? 0) + won.duel.hitsTaken },
+      };
+    }
     const isBoss = foe.id === r.bossId;
     if (!isBoss) onProfile(await addItems(won.maxHp));
     await apply({ type: 'WIN_FIGHT', items: won.maxHp, boss: isBoss });
@@ -527,7 +643,18 @@ export function QuestRunner({ initial, profile, onProfile, onSettings, onBossVic
   const key = `${quest.level}-${quest.step}`;
   switch (step.kind) {
     case 'task':
-      return <TaskStep key={key} quest={quest} step={step} foe={foe} weaponId={weaponId} onDone={() => void apply({ type: 'COMPLETE_STEP' })} onExit={onExit} />;
+      return (
+        <TaskStep
+          key={key}
+          quest={quest}
+          step={step}
+          foe={foe}
+          weaponId={weaponId}
+          onDuel={updateDuel}
+          onDone={() => void apply({ type: 'COMPLETE_STEP' })}
+          onExit={onExit}
+        />
+      );
     case 'timer':
       return (
         <TimerStep
@@ -536,6 +663,7 @@ export function QuestRunner({ initial, profile, onProfile, onSettings, onBossVic
           step={step}
           foe={foe}
           weaponId={weaponId}
+          onDuel={updateDuel}
           onStart={(minutes) => void apply({ type: 'START_TIMER', minutes })}
           onDone={() => void apply({ type: 'COMPLETE_STEP' })}
           onExit={onExit}

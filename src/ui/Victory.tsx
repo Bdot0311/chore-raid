@@ -149,6 +149,11 @@ export function Victory({ boss, raid: initialRaid, loot, onAfterPhoto, onDone }:
               <p className="mt-1 text-sm text-ash">
                 {raid.lootStars} Loot Star{raid.lootStars === 1 ? '' : 's'} earned
               </p>
+              {raid.duel && raid.duel.hitsTaken === 0 && (
+                <p className="mt-2 rounded-full bg-sky-400/20 px-3 py-1 font-display text-lg tracking-wider text-sky-300 ring-2 ring-sky-300/60">
+                  FLAWLESS · +1 Loot Star
+                </p>
+              )}
             </motion.button>
           )}
 

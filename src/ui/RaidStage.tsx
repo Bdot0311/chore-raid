@@ -5,7 +5,10 @@ import type { BossDef } from '../game/types';
 import { enemyFor } from '../world/cast';
 import { World } from '../world/World';
 
-export type StageHandle = Pick<World, 'hit' | 'comboUp' | 'windup' | 'windupResult' | 'undo' | 'die' | 'defeat' | 'setDormant' | 'setHp'>;
+export type StageHandle = Pick<
+  World,
+  'hit' | 'comboUp' | 'windup' | 'windupResult' | 'undo' | 'die' | 'defeat' | 'setDormant' | 'setHp' | 'enemyCharge' | 'interrupt' | 'heroStruck'
+>;
 
 /** The player's chosen hero class, provided by the app. */
 export const HeroContext = createContext<string | undefined>(undefined);
@@ -68,6 +71,9 @@ export const RaidStage = forwardRef<StageHandle, Props>(function RaidStage({ bos
     defeat: () => world.current?.defeat() ?? Promise.resolve(),
     setDormant: (on) => world.current?.setDormant(on),
     setHp: (p) => world.current?.setHp(p),
+    enemyCharge: () => world.current?.enemyCharge(),
+    interrupt: () => world.current?.interrupt(),
+    heroStruck: (...a) => world.current?.heroStruck(...a),
   }));
 
   return <div ref={host} className="absolute inset-0 overflow-hidden bg-black" aria-hidden />;

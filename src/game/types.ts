@@ -1,3 +1,5 @@
+import type { Duel } from './duel';
+
 export type BossKind = 'laundry' | 'dishes' | 'clutter' | 'king' | 'custom';
 
 export interface BossDef {
@@ -62,6 +64,8 @@ export interface Raid {
   lootId?: string;
   /** Set when the raid is a fight inside a campaign quest. */
   questId?: string;
+  /** The enemy fighting back: the hero's health and the enemy's rhythm. */
+  duel?: Duel;
 }
 
 export interface Photo {
@@ -133,4 +137,6 @@ export interface Quest {
   xp: number;
   /** Items finished across all fights in this quest. */
   items: number;
+  /** The hero's health, carried from step to step within a level. */
+  duel?: Duel;
 }

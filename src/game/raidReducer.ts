@@ -1,3 +1,4 @@
+import { hurt, INTERRUPT_BONUS, strike, tick as duelTick, WINDUP_MISS_DAMAGE, type Duel, type DuelEvent } from './duel';
 import type { HitSource, Raid, Windup } from './types';
 import {
   COMBO_WINDOW_MS,
@@ -30,7 +31,11 @@ export type RaidEvent =
   | { type: 'windup-progress'; progress: number; target: number }
   | { type: 'windup-beaten'; bonus: number; lootStars: number }
   | { type: 'windup-missed'; lootStars: number }
-  | { type: 'dead' };
+  | { type: 'dead' }
+  | { type: 'enemy-charge'; landsAt: number }
+  | { type: 'hero-struck'; damage: number; heroHp: number; big: boolean }
+  | { type: 'knockdown'; lootStars: number }
+  | { type: 'interrupt'; bonus: number };
 
 export interface RaidResult {
   raid: Raid;
@@ -61,6 +66,7 @@ export function createRaid(
   maxHp: number,
   now: number,
   rand: () => number = Math.random,
+  duel?: Duel,
 ): Raid {
   return {
     id,
@@ -76,7 +82,26 @@ export function createRaid(
     lootStars: STARTING_LOOT_STARS,
     windups: [],
     windupAtHp: planWindups(maxHp, rand),
+    duel,
   };
+}
+
+/** Turns the duel's events into raid events; a knockdown costs a Loot Star. */
+function applyDuel(raid: Raid, duel: Duel, duelEvents: DuelEvent[], events: RaidEvent[], big = false): Raid {
+  let next: Raid = { ...raid, duel };
+  for (const e of duelEvents) {
+    if (e.type === 'charge') events.push({ type: 'enemy-charge', landsAt: e.landsAt });
+    else if (e.type === 'struck') events.push({ type: 'hero-struck', damage: e.damage, heroHp: e.heroHp, big });
+    else if (e.type === 'interrupt') {
+      next = { ...next, score: next.score + INTERRUPT_BONUS };
+      events.push({ type: 'interrupt', bonus: INTERRUPT_BONUS });
+    } else if (e.type === 'knockdown') {
+      const lootStars = Math.max(0, next.lootStars - 1);
+      next = { ...next, lootStars, streak: 0 };
+      events.push({ type: 'knockdown', lootStars });
+    }
+  }
+  return next;
 }
 
 /** The last hit that still counts. */
@@ -171,6 +196,12 @@ export function raidReducer(raid: Raid, action: RaidAction, now: number): RaidRe
         events.push({ type: 'windup-start', target, deadline });
       }
 
+      // Finishing an item strikes first: it interrupts a charging enemy.
+      if (next.duel && hp > 0) {
+        const res = strike(next.duel, now);
+        next = applyDuel(next, res.duel, res.events, events);
+      }
+
       if (hp <= 0) {
         next = { ...next, hp: 0, status: 'won', endedAt: now };
         events.push({ type: 'dead' });
@@ -229,6 +260,23 @@ export function raidReducer(raid: Raid, action: RaidAction, now: number): RaidRe
           windups: replaceLastWindup(raid, { ...windup, beaten: false, resolvedAt: now }),
         };
         events.push({ type: 'windup-missed', lootStars });
+        if (next.duel) {
+          // The wind-up lands as a heavy blow, and the rhythm restarts after it.
+          const res = hurt(next.duel, WINDUP_MISS_DAMAGE);
+          next = applyDuel(next, { ...res.duel, nextAttackAt: now + res.duel.pace.intervalMs, announced: undefined }, res.events, events, true);
+        }
+      }
+
+      if (next.duel) {
+        const pending = activeWindup(next);
+        if (pending) {
+          // The regular blows wait while a wind-up is on.
+          const hold = pending.deadline + next.duel.pace.chargeMs;
+          if (next.duel.nextAttackAt < hold) next = { ...next, duel: { ...next.duel, nextAttackAt: hold, announced: undefined } };
+        } else {
+          const res = duelTick(next.duel, now);
+          if (res.duel !== next.duel) next = applyDuel(next, res.duel, res.events, events);
+        }
       }
 
       return { raid: next, events };

@@ -128,9 +128,9 @@ export class World {
   private attackIdx = 0;
   private busy = false;
   private queued: { mult: number; gained: number }[] = [];
-  private lastHitAt = 0;
-  private nextAttackIn = 9;
   private counterUntil = 0;
+  private charging = false;
+  private pendingKnockdown = false;
   private windupOn = false;
   private healGlow = 0;
   private dormant = false;
@@ -323,7 +323,6 @@ export class World {
       this.o.onRoar?.();
     }
     this.entering = false;
-    this.lastHitAt = this.time;
   }
 
   // ------------------------------------------------------------ inputs
@@ -337,9 +336,8 @@ export class World {
 
   hit(_x: number, _y: number, multiplier: number, gained: number): { move: Move; bolt: boolean } | undefined {
     if (!this.ready || this.dead) return undefined;
-    this.lastHitAt = this.time;
-    this.nextAttackIn = rand(7, 12);
-    const countered = this.time < this.counterUntil;
+    // Striking a charging enemy, or right after taking a blow, is a counter.
+    const countered = this.charging || this.time < this.counterUntil;
     this.counterUntil = 0;
     const bolt = multiplier >= 3 && (multiplier === 4 || Math.random() < 0.5);
     if (this.busy) {
@@ -390,7 +388,6 @@ export class World {
       void this.enemy.once('Spellcast_Raise');
       this.fx.rise(this.enemy.root.position.clone(), 1.2 * this.o.enemy.size, 40, [0x4ade80, 0xbbf7d0], 2);
       this.text('WARD HEALED', 0.5, 0.3, '#4ade80', 40, 1.6);
-      window.setTimeout(() => this.enemyAttack(true), 900);
     }
   }
 
@@ -435,6 +432,7 @@ export class World {
   setDormant(on: boolean) {
     if (on === this.dormant) return;
     this.dormant = on;
+    if (on) this.charging = false;
     if (!this.ready || this.dead) return;
     void this.waitForEntrance().then(async () => {
       if (this.dormant !== on || this.dead) return;
@@ -569,29 +567,107 @@ export class World {
     });
   }
 
-  /** The enemy lunges at the hero, who blocks. Purely cosmetic: HP never changes. */
-  private enemyAttack(big: boolean) {
-    if (!this.ready || this.dead || this.dormant || this.busy) return;
-    const caster = this.o.enemy.attack.startsWith('Spellcast');
-    const toHero = this.heroMark.clone().sub(this.enemyMark).setY(0).normalize();
-    const lunge = caster ? this.enemyMark.clone() : this.heroMark.clone().addScaledVector(toHero, -(1.3 + this.o.enemy.size * 0.5));
-    const from = this.enemy.root.position.clone();
-    this.tween(0.18, (k) => this.enemy.root.position.lerpVectors(from, lunge, k));
-    const clip = this.o.enemy.attack;
-    const speed = 1.2;
-    void this.enemy.once(clip, { speed }).then(() => {
-      const back = this.enemy.root.position.clone();
-      this.tween(0.3, (k) => this.enemy.root.position.lerpVectors(back, this.enemyMark, k));
+  /** The enemy rears up for a blow: the player has until it lands to finish an item. */
+  enemyCharge() {
+    if (!this.ready || this.dead || this.dormant) return;
+    this.charging = true;
+    void this.waitForEntrance().then(() => {
+      if (!this.charging || this.dead) return;
+      const caster = this.o.enemy.attack.startsWith('Spellcast');
+      this.enemy.idle = caster ? 'Spellcasting' : this.o.enemy.offhand ? 'Blocking' : '2H_Melee_Idle';
+      this.enemy.loop(this.enemy.idle, { fade: 0.2 });
+      const p = this.project(this.enemy.root.position.clone().add(new Vector3(0, 2.4 * this.o.enemy.size, 0)));
+      this.text('!', p.x, p.y, '#ff4d3d', 72, 1.6);
+      this.shake = Math.max(this.shake, 0.08);
+      this.o.onRoar?.();
+      // It edges toward the hero while it charges.
+      const toHero = this.heroMark.clone().sub(this.enemyMark).setY(0).normalize().multiplyScalar(0.5);
+      const from = this.enemy.root.position.clone();
+      this.tween(0.8, (k) => this.enemy.root.position.copy(from).addScaledVector(toHero, k));
     });
-    window.setTimeout(() => {
+  }
+
+  /** The player finished an item in time: the charge breaks. */
+  interrupt() {
+    if (!this.ready || !this.charging) return;
+    this.charging = false;
+    this.enemy.idle = 'Idle_Combat';
+    this.text('INTERRUPTED!', 0.5, 0.22, '#7dd3fc', 46, 1.5);
+    this.fx.burst(this.enemyChest(), { count: 30, speed: 7, colors: [0x7dd3fc, 0xffffff], additive: true, gravity: -2, life: 0.6, size: 0.25 });
+  }
+
+  /** The blow lands on the hero: real damage to the hero's health. */
+  heroStruck(damage: number, big: boolean, knockdown: boolean) {
+    if (!this.ready || this.dead) return;
+    this.charging = false;
+    this.windupOn = false;
+    this.enemy.idle = 'Idle_Combat';
+    this.pendingKnockdown = knockdown;
+    void (async () => {
+      await this.waitForEntrance();
+      for (let i = 0; i < 15 && this.busy; i++) await sleep(50);
       if (this.destroyed || this.dead) return;
-      void this.hero.once('Block_Hit', { speed: 1.2 });
-      this.fx.burst(this.hero.root.position.clone().add(new Vector3(0.2, 1.4, -0.5)), { count: 18, speed: 5, colors: [0xffffff, 0xffd36b], additive: true, gravity: -6, life: 0.4, size: 0.18 });
-      this.shake = Math.max(this.shake, big ? 0.3 : 0.2);
-      this.hurt(big ? 1 : 0.7);
-      this.counterUntil = this.time + 1.6;
-      this.o.onBossAttack?.(big);
-    }, (this.enemy.duration(clip) / speed) * 0.45 * 1000);
+      const caster = this.o.enemy.attack.startsWith('Spellcast');
+      const toHero = this.heroMark.clone().sub(this.enemyMark).setY(0).normalize();
+      const lunge = caster ? this.enemy.root.position.clone() : this.heroMark.clone().addScaledVector(toHero, -(1.3 + this.o.enemy.size * 0.5));
+      const from = this.enemy.root.position.clone();
+      this.tween(0.16, (k) => this.enemy.root.position.lerpVectors(from, lunge, k));
+      const clip = this.o.enemy.attack;
+      const speed = 1.25;
+      void this.enemy.once(clip, { speed }).then(() => {
+        const back = this.enemy.root.position.clone();
+        this.tween(0.35, (k) => this.enemy.root.position.lerpVectors(back, this.enemyMark, k));
+      });
+      const impactMs = (this.enemy.duration(clip) / speed) * 0.45 * 1000;
+      if (caster) window.setTimeout(() => this.spell(), impactMs * 0.6);
+      window.setTimeout(() => this.blowLands(damage, big), impactMs);
+    })();
+  }
+
+  /** A caster's bolt flying at the hero. */
+  private spell() {
+    const from = this.enemyChest().add(new Vector3(0, 0.4 * this.o.enemy.size, 0));
+    const to = this.hero.root.position.clone().add(new Vector3(0, 1.3, 0));
+    this.tween(0.2, (k) => {
+      const p = from.clone().lerp(to, k);
+      this.fx.burst(p, { count: 4, speed: 0.6, colors: [0xff5a4d, 0xc084fc, 0xffffff], additive: true, gravity: 0, life: 0.35, size: 0.35 });
+    });
+  }
+
+  private blowLands(damage: number, big: boolean) {
+    if (this.destroyed || this.dead) return;
+    const at = this.hero.root.position.clone().add(new Vector3(0, 1.3, 0));
+    this.fx.burst(at, { count: 24, speed: 6, colors: [0xff4d3d, 0xffd36b, 0xffffff], additive: true, gravity: -6, life: 0.5, size: 0.22 });
+    this.shake = Math.max(this.shake, big ? 0.38 : 0.26);
+    this.hitStop = Math.max(this.hitStop, 0.08);
+    this.hurt(big ? 1 : 0.8);
+    const p = this.project(at.clone().add(new Vector3(0, 0.9, 0)));
+    this.text(`-${damage}`, p.x, p.y, '#ff4d3d', big ? 54 : 44, 1.2);
+    this.counterUntil = this.time + 1.6;
+    // Knocked back a step.
+    const back = this.heroMark.clone().sub(this.enemyMark).setY(0).normalize().multiplyScalar(0.6);
+    const base = this.heroMark.clone();
+    this.tween(0.4, (k) => this.hero.root.position.copy(base).addScaledVector(back, Math.sin(Math.PI * k)));
+    this.o.onBossAttack?.(big);
+    if (this.pendingKnockdown) {
+      this.pendingKnockdown = false;
+      void this.knockdown();
+    } else {
+      void this.hero.once(big ? 'Hit_B' : 'Hit_A', { speed: 1.1 });
+    }
+  }
+
+  /** The hero's health ran out: down for a moment, then back up at full. */
+  private async knockdown() {
+    this.slow(0.35, 600);
+    this.text('KNOCKED DOWN!', 0.5, 0.3, '#ff4d3d', 52, 2);
+    this.busy = true;
+    await this.hero.once('Death_B', { hold: true });
+    await sleep(900);
+    if (this.destroyed) return;
+    await this.hero.once('Lie_StandUp');
+    this.fx.rise(this.hero.root.position.clone(), 0.7, 24, [0x4ade80, 0xbbf7d0, 0xffffff], 2.2);
+    this.busy = false;
   }
 
   private lightning() {
@@ -705,14 +781,8 @@ export class World {
       }
       return;
     }
-    if (!this.o.passive && !this.windupOn && !this.busy && this.time - this.lastHitAt > this.nextAttackIn) {
-      this.lastHitAt = this.time;
-      this.nextAttackIn = rand(8, 14);
-      this.enemyAttack(false);
-      return;
-    }
     this.nextTaunt -= dt;
-    if (this.nextTaunt <= 0 && !this.busy && !this.windupOn) {
+    if (this.nextTaunt <= 0 && !this.busy && !this.windupOn && !this.charging) {
       this.nextTaunt = rand(5, 9);
       void this.enemy.once('Taunt');
     }
@@ -725,7 +795,7 @@ export class World {
     });
     this.healGlow = Math.max(0, this.healGlow - dt * 0.6);
     const chest = this.enemyChest();
-    if (this.windupOn) {
+    if (this.windupOn || this.charging) {
       this.enemyLight.color.set(0xff3b30);
       this.enemyLight.intensity = 10 + Math.sin(t * 9) * 5;
     } else if (this.healGlow > 0.05) {
