@@ -1,0 +1,406 @@
+CHORE RAID: NARRATOR SCRIPT (the 134 main lines)
+Record each line as its own clip and save it with the file name shown above it.
+Upload the files into public/voice/ (same names replace the current voice).
+
+#1  2549a441.mp3
+Hear now a tale! One ordinary evening, the Mess King moved into your home. Nobody invited him. He brought laundry.
+
+#2  3770b7e7.mp3
+But every home has a hero. In the hall closet, beneath three coats and a lost umbrella, a weapon lay waiting. For you.
+
+#3  1f7fb735.mp3
+Three lairs! Three bosses! One very messy kingdom. Win them back, and the Mess King shall have nowhere left to sit.
+
+#4  151d8876.mp3
+Welcome, hero. Your quest begins in the Laundry Lair. Probably.
+
+#5  4629fe0c.mp3
+The machine is finished. Back to the quest.
+
+#6  1cccc7cc.mp3
+Level cleared. Take a breath. Then the next one.
+
+#7  63fd4a7f.mp3
+Now then. Who are you, hero? Choose your champion, and tell me your name.
+
+#8  bf27108a.mp3
+Behold, your kingdom! Three lairs, held by the Mess King and his crew. Choose where to strike.
+
+#9  b6c2991f.mp3
+Back at the map. The Mess King grows nervous. Choose your next lair.
+
+#10  6b3e634e.mp3
+The throne room stands open! The Mess King awaits. He is pretending not to be nervous.
+
+#11  befe592b.mp3
+Onward, through the village, to the Laundry Lair! The villagers cheer. They are running low on clean socks.
+
+#12  12b21258.mp3
+Onward to the Sink Caverns! The villagers cheer. They have been eating off napkins for days.
+
+#13  780edff7.mp3
+Onward to the Clutter Keep! The villagers cheer, from a safe distance.
+
+#14  bbbdfb9d.mp3
+The road to the throne! The whole village has come out to watch. No pressure.
+
+#15  1dc7313b.mp3
+The Laundry Lair. The Sock Skeletons guard every load, and the Laundry Lich waits in the last one. It has been waiting a while. It is fine with that.
+
+#16  d505b8c5.mp3
+The Laundry Lair is yours. Well done.
+
+#17  a5a67943.mp3
+Gather the load. Grab everything for this load and bring it to the washer. Check under the bed. The skeletons hide socks there.
+
+#18  c6caa18c.mp3
+Sort it. Lights in one pile, darks in another, anything delicate on its own. Empty the pockets.
+
+#19  bb250067.mp3
+Start the washer. Load it, add detergent, press start. Then start the timer here and go do something else.
+
+#20  0df3344b.mp3
+Into the dryer. Move it all to the dryer. Hang anything that should not be dried. Start the timer.
+
+#21  495974a5.mp3
+Fold it. Fold one item, land one hit. Count the load first.
+
+#22  a7711a14.mp3
+Put it all away. Every folded item goes back where it lives. Drawers, hangers, the lot.
+
+#23  5c4901d8.mp3
+Boss, Fold the Lich. Fold one item, land one hit. Count the load first.
+
+#24  a056f78e.mp3
+The Laundry Lair is free. One less lair for the Mess King. 1 to go, hero. He is pretending not to notice.
+
+#25  898e59e1.mp3
+The Laundry Lair is free. One less lair for the Mess King. 2 to go, hero. He is pretending not to notice.
+
+#26  acd789e6.mp3
+The Laundry Lair is free. All three lairs are free. The Mess King has run out of places to hide. The throne room is open, hero.
+
+#27  e9a0ff67.mp3
+The home is yours. The Mess King packed one small bag and left. He will be back; he always is. But tonight, hero, every room is yours. Well played.
+
+#28  04892924.mp3
+The Sink Caverns. Grease Gremlins guard the counters, and the Sink Warlord lurks under the suds. It has one axe and no manners.
+
+#29  207c5053.mp3
+The Sink Caverns is yours. Well done.
+
+#30  5c1a4abe.mp3
+Clear the table. Bring every plate, cup and pan to the sink. Do not forget the mug by the couch.
+
+#31  b4579aec.mp3
+Scrape and rinse. Scrape the leftovers into the bin and give everything a quick rinse. Run the water hot.
+
+#32  848a8885.mp3
+Wash up. Wash one dish (or load it in the dishwasher), land one hit.
+
+#33  8cb49933.mp3
+Dry and put away. Dry what is clean and put it back in the cupboards. Running the dishwasher? Start it and tap done.
+
+#34  12fc3f80.mp3
+Wipe the counters. Wipe the counters and the sink. Wring out the sponge. Victory smells like lemon.
+
+#35  ce0115c9.mp3
+Boss, Wash the Warlord. Wash one dish (or load it in the dishwasher), land one hit.
+
+#36  73ed7400.mp3
+The Sink Caverns is free. One less lair for the Mess King. 1 to go, hero. He is pretending not to notice.
+
+#37  38da7057.mp3
+The Sink Caverns is free. One less lair for the Mess King. 2 to go, hero. He is pretending not to notice.
+
+#38  b71edd58.mp3
+The Sink Caverns is free. All three lairs are free. The Mess King has run out of places to hide. The throne room is open, hero.
+
+#39  184f491b.mp3
+The Clutter Keep. Every room is held by a Dust Brute, and the Clutter Colossus guards the last one. It is mostly cables.
+
+#40  6f6e4ece.mp3
+The Clutter Keep is yours. Well done.
+
+#41  42ea8b45.mp3
+Grab your gear. Grab a bag for trash and a basket for things that live in other rooms.
+
+#42  774a54b6.mp3
+Trash run. Bin everything that is trash, wrappers, receipts, the dried-out pen. Be ruthless.
+
+#43  3591b37f.mp3
+Put things back. Put one thing back where it lives, land one hit.
+
+#44  99bcf33c.mp3
+Clear the surfaces. Clear the tables and shelves, straighten what is left, and take the basket where it goes.
+
+#45  3468d9a1.mp3
+Boss, Topple the Colossus. Put one thing back where it lives, land one hit.
+
+#46  547ee7d9.mp3
+The Clutter Keep is free. One less lair for the Mess King. 1 to go, hero. He is pretending not to notice.
+
+#47  47474be6.mp3
+The Clutter Keep is free. One less lair for the Mess King. 2 to go, hero. He is pretending not to notice.
+
+#48  b4ff4611.mp3
+The Clutter Keep is free. All three lairs are free. The Mess King has run out of places to hide. The throne room is open, hero.
+
+#49  861e88f7.mp3
+The throne room. The Mess King sits on a pile of everything you ever meant to put away. He is not getting up. You will have to make him.
+
+#50  3d1d569f.mp3
+The Mess King's Throne is yours. Well done.
+
+#51  c7eeb9fc.mp3
+Sweep the Laundry Lair. Any clothes on the floor or the chair? Into the basket.
+
+#52  1fabed14.mp3
+Check the Sink Caverns. Any dishes hiding in the sink? Wash them or load them.
+
+#53  2646a22a.mp3
+Final Boss, The Mess King. Ten-minute reset, put one thing right anywhere in the home, land one hit.
+
+#54  7a5e1232.mp3
+Take the crown. Look around. Take a breath. This is your home again.
+
+#55  13b6c2e4.mp3
+The Mess King's Throne is free. One less lair for the Mess King. 1 to go, hero. He is pretending not to notice.
+
+#56  8f2f00db.mp3
+The Mess King's Throne is free. One less lair for the Mess King. 2 to go, hero. He is pretending not to notice.
+
+#57  dbbb1fac.mp3
+The Mess King's Throne is free. All three lairs are free. The Mess King has run out of places to hide. The throne room is open, hero.
+
+#58  a8db1197.mp3
+The Laundry Lich rises from the hamper. It is unimpressed.
+
+#59  e00dd884.mp3
+You have disturbed the Laundry Lich. It was napping on your chair.
+
+#60  ec57b0bc.mp3
+The Lich flings a wet sock spell at you. Keep folding.
+
+#61  1e62c778.mp3
+The Lich lunges. It smells faintly of fabric softener.
+
+#62  6dacd019.mp3
+Critical. The Lich loses its hat. It pretends not to care.
+
+#63  6eedbf19.mp3
+Critical. A sock falls off. Nobody will ever find it.
+
+#64  ae0c8c10.mp3
+The Lich restores its Ward. It found a matching sock. Smug.
+
+#65  2ce6f150.mp3
+Too slow. The Lich heals. It is now slightly more wrinkled.
+
+#66  72457fe5.mp3
+The Lich is unravelling.
+
+#67  f1984f68.mp3
+The Lich is down to its last few threads.
+
+#68  afcc3e75.mp3
+The Laundry Lich is folded. It accepts this.
+
+#69  2907505a.mp3
+The Lich is defeated. The drawer is full. Peace returns.
+
+#70  33a85dde.mp3
+The Lich is gathering a spell. Finish an item to strike first.
+
+#71  5221fa45.mp3
+The Lich raises its staff. It hums. Finish an item to strike first.
+
+#72  9b81e426.mp3
+A skeleton is winding up. Finish an item to strike first.
+
+#73  b21a800e.mp3
+The skeleton raises its blade. Finish an item to strike first.
+
+#74  53c61aae.mp3
+Something rattles. It is winding up. Finish an item to strike first.
+
+#75  6718beba.mp3
+The Lich is gathering a spell. Finish this step to strike first.
+
+#76  dac0750d.mp3
+The Lich raises its staff. It hums. Finish this step to strike first.
+
+#77  94a77352.mp3
+A skeleton is winding up. Finish this step to strike first.
+
+#78  2a28f1aa.mp3
+The skeleton raises its blade. Finish this step to strike first.
+
+#79  f1f2584a.mp3
+Something rattles. It is winding up. Finish this step to strike first.
+
+#80  39e5e066.mp3
+The Sink Warlord climbs out of the suds. It has been waiting since Tuesday.
+
+#81  69a117a3.mp3
+The Sink Warlord raises its axe. It is mostly a fork.
+
+#82  87352f29.mp3
+The Warlord splashes dishwater at you. Keep scrubbing.
+
+#83  5c2396e8.mp3
+The Warlord swings a soggy axe at you. Rude.
+
+#84  505c4d74.mp3
+Critical. The Warlord staggers into the dish rack.
+
+#85  4a00d5e1.mp3
+Critical. The Warlord loses a plate. It squeaks.
+
+#86  56255156.mp3
+The Warlord heals. A fresh coat of crusted lasagna.
+
+#87  473fef69.mp3
+Too slow. The Warlord heals. It is mostly soup now.
+
+#88  d74b29b8.mp3
+The Warlord is running out of armor.
+
+#89  9aab67d5.mp3
+The Warlord is gurgling. That is not a good sign for it.
+
+#90  f9fc74a0.mp3
+The Sink Warlord drains away. The sink is empty. It is unsettling.
+
+#91  d8cfc979.mp3
+The Warlord is defeated. Every plate gleams.
+
+#92  d17a1ba2.mp3
+The Warlord raises its axe. Finish an item to strike first.
+
+#93  9c14732a.mp3
+The Warlord is winding up a soggy swing. Finish an item to strike first.
+
+#94  617ab8d6.mp3
+The Warlord raises its axe. Finish this step to strike first.
+
+#95  fde76e2e.mp3
+The Warlord is winding up a soggy swing. Finish this step to strike first.
+
+#96  8e31467d.mp3
+The Clutter Colossus assembles itself. It is mostly cables.
+
+#97  0712466f.mp3
+The Clutter Colossus stands. It has been standing there for weeks. You just noticed.
+
+#98  b0df7c11.mp3
+The Colossus swings a mug at you. Keep tidying.
+
+#99  ec9a1073.mp3
+The Colossus throws a cable. It is tangled. Of course it is.
+
+#100  89ea3303.mp3
+Critical. A chunk falls off the Colossus. It was a shoe.
+
+#101  a166d030.mp3
+Critical. The Colossus loses an arm made of mail.
+
+#102  1b053fc9.mp3
+The Colossus rebuilds. It found a box of old chargers.
+
+#103  c2c8ffaf.mp3
+Too slow. The Colossus heals. It has acquired a lamp.
+
+#104  897b25c3.mp3
+The Colossus is wobbling.
+
+#105  3dca9ea2.mp3
+The Colossus is barely a pile anymore.
+
+#106  3b7b9d3d.mp3
+The Clutter Colossus collapses into nothing. Everything is where it lives.
+
+#107  bf1b9aaa.mp3
+The Colossus is defeated. You can see the floor.
+
+#108  c0034ddc.mp3
+The Colossus is winding up. Finish an item to strike first.
+
+#109  f35833f8.mp3
+The Colossus lifts its blade. Slowly. Menacingly. Finish an item to strike first.
+
+#110  e300dc7c.mp3
+The Colossus is winding up. Finish this step to strike first.
+
+#111  64e0c280.mp3
+The Colossus lifts its blade. Slowly. Menacingly. Finish this step to strike first.
+
+#112  6bd36af9.mp3
+The Mess King looks up from his throne. He sighs. He stands. He hates standing.
+
+#113  2e805071.mp3
+The Mess King yawns. You have his attention. Barely.
+
+#114  6542d9ae.mp3
+The Mess King flicks a crumb at you. It is a big crumb.
+
+#115  8e4be8aa.mp3
+The Mess King points his plunger at you. Keep going.
+
+#116  d9c3b975.mp3
+Critical. The crown slips.
+
+#117  1a8fd4e2.mp3
+Critical. The King sits up straight for once.
+
+#118  28e0f52b.mp3
+The Mess King reclines. The mess grows back a little.
+
+#119  44f1a166.mp3
+Too slow. The King looks pleased with himself.
+
+#120  14668815.mp3
+The Mess King is losing his throne.
+
+#121  90b4b954.mp3
+The King looks around for somewhere else to sit.
+
+#122  75099e91.mp3
+The Mess King topples off his throne. Your home is yours again.
+
+#123  c1cfc616.mp3
+The Mess King is defeated. He leaves without saying goodbye. Typical.
+
+#124  965434d5.mp3
+The Mess King raises his staff. He sighs first. Finish an item to strike first.
+
+#125  dce9deba.mp3
+The Mess King is gathering mess for a blow. Finish an item to strike first.
+
+#126  254c861d.mp3
+The Mess King raises his staff. He sighs first. Finish this step to strike first.
+
+#127  a1a8987e.mp3
+The Mess King is gathering mess for a blow. Finish this step to strike first.
+
+#128  460cd323.mp3
+Ouch. The skeleton got you.
+
+#129  655c125d.mp3
+You took a blow. Keep going.
+
+#130  a0e27310.mp3
+Interrupted. Nice.
+
+#131  c1719bf8.mp3
+You struck first.
+
+#132  bc998f20.mp3
+Too slow for you.
+
+#133  dcbbe413.mp3
+You are down. Get up. The chore is still here.
+
+#134  6f03b699.mp3
+Knocked down. A Loot Star rolls away. Up you get.
+

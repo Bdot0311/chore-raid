@@ -109,7 +109,7 @@ function fill(template: string, vars: Record<string, string | number>) {
  * Counts above this are not pre-recorded, so lines that would say them fall
  * back to a version without the number.
  */
-export const MAX_SPOKEN_COUNT = 60;
+export const MAX_SPOKEN_COUNT = 20;
 
 const count = (boss: BossDef, n: number) => `${n} ${unitWord(boss, n)}`;
 /** Wind-up deadlines are spoken to the nearest five seconds. */
