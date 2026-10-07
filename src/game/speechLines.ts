@@ -156,6 +156,21 @@ export const ALL_LINE_TEMPLATES = [
   ...KNOCKDOWN,
 ];
 
+/** Whole boss lines without numbers in them (recorded in one take). */
+export function allBossLines(bosses: BossDef[]): string[] {
+  const out: string[] = [];
+  for (const boss of bosses) {
+    const b = BANKS[boss.kind];
+    out.push(...b.start, ...b.attack, ...b.beaten, ...b.missed, ...b.lowHp, ...b.death);
+    for (const task of [false, true]) {
+      const tail = task ? 'Finish this step to strike first.' : 'Finish an item to strike first.';
+      for (const c of [...b.charge, ...MINION_CHARGE]) out.push(`${c} ${tail}`);
+    }
+  }
+  out.push(...MINION_STRUCK, ...INTERRUPT, ...KNOCKDOWN);
+  return out;
+}
+
 /**
  * Every sentence the boss lines can produce for the built-in bosses, so the
  * narrator's voice can be recorded ahead of time (tools/narrate.py).

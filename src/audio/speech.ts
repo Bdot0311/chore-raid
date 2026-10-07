@@ -7,7 +7,7 @@
  * one replaces any that hasn't been spoken yet instead of stacking up behind it.
  */
 
-import { clipKey, sentences } from '../game/narration';
+import { clipKey, lineText, sentences } from '../game/narration';
 import { sfx } from './sfx';
 import manifest from './voiceManifest.json';
 
@@ -31,8 +31,8 @@ function decodeContext(): BaseAudioContext | undefined {
   if (!decoder && typeof OfflineAudioContext !== 'undefined') decoder = new OfflineAudioContext(1, 1, 24000);
   return decoder;
 }
-/** A breath between recorded sentences. */
-const GAP_S = 0.22;
+/** A breath between stitched sentence clips. */
+const GAP_S = 0.12;
 
 class Speech {
   private queue: Pending[] = [];
@@ -98,6 +98,11 @@ class Speech {
 
   /** Starts fetching a line's recordings so it plays without a pause. */
   preload(text: string) {
+    const whole = clipKey(lineText(text));
+    if (RECORDED.has(whole)) {
+      this.clip(whole);
+      return;
+    }
     for (const s of sentences(text)) this.clip(clipKey(s));
   }
 
@@ -136,8 +141,9 @@ class Speech {
     if (!next) return;
     this.setSpeaking(true);
     const gen = this.generation;
-    const parts = sentences(next.text);
-    const keys = parts.map(clipKey);
+    // A whole line recorded in one take flows best; otherwise stitch its sentences.
+    const whole = clipKey(lineText(next.text));
+    const keys = RECORDED.has(whole) ? [whole] : sentences(next.text).map(clipKey);
     let ok = false;
     if (keys.every((k) => RECORDED.has(k)) && (await sfx.voiceReady()) && gen === this.generation) ok = await this.playClips(keys, gen);
     if (gen !== this.generation) return;

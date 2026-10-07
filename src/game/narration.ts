@@ -1,7 +1,7 @@
 import type { RegionId } from './types';
 import { BUILT_IN_BOSSES } from './bosses';
 import { CAMPAIGN_ENEMIES, REGIONS } from './campaign';
-import { allBossSentences } from './speechLines';
+import { allBossLines, allBossSentences } from './speechLines';
 
 /**
  * What the narrator says outside of fights. Spoken lines never include the
@@ -69,6 +69,27 @@ export function sentences(text: string): string[] {
     .split(/(?<=[.!?])\s+/)
     .map((s) => s.replace(/\s+/g, ' ').trim())
     .filter(Boolean);
+}
+
+/** A whole line, normalized: the key for its one-take recording. */
+export const lineText = (text: string) => text.replace(/\s+/g, ' ').trim();
+
+/**
+ * Every line the game says that has no numbers in it, recorded in one take so
+ * it flows naturally. Lines with counts are stitched from sentence clips.
+ */
+export function allLines(): string[] {
+  const texts: string[] = [...STORY_PANELS.map((p) => p.text), say.welcome, say.cycleDone, say.levelCleared, say.chooseHero];
+  texts.push(say.map(0, false), say.map(1, false), say.map(3, true), ...Object.values(TOWN));
+  for (const r of REGIONS) {
+    texts.push(r.intro, say.questCleared(r.name));
+    for (const boss of [false, true]) for (const st of r.steps(boss)) texts.push(say.step(st.title, st.instruction));
+    for (const ending of [false, true]) {
+      for (const throneNext of [false, true]) for (const rem of [1, 2]) texts.push(freedLines(r.name, ending, throneNext, rem, 'hero').spoken);
+    }
+  }
+  texts.push(...allBossLines([...BUILT_IN_BOSSES, ...CAMPAIGN_ENEMIES]));
+  return [...new Set(texts.map(lineText))];
 }
 
 /** Every sentence the game can say with the built-in content. */

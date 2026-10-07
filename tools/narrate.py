@@ -35,7 +35,9 @@ def main():
     ap.add_argument("--model", required=True)
     ap.add_argument("--voices", required=True)
     ap.add_argument("--voice", default="bm_fable")
-    ap.add_argument("--speed", type=float, default=1.05)
+    ap.add_argument("--speed", type=float, default=1.0)
+    # British voices need British pronunciation, or the rhythm goes strange.
+    ap.add_argument("--lang", default="en-gb")
     args = ap.parse_args()
 
     lines = json.loads(Path(args.lines).read_text())
@@ -47,13 +49,13 @@ def main():
     print(f"{len(lines)} sentences, {len(todo)} to record")
     with tempfile.TemporaryDirectory() as tmp:
         for i, line in enumerate(todo):
-            samples, rate = kokoro.create(speakable(line["text"]), voice=args.voice, speed=args.speed, lang="en-us")
+            samples, rate = kokoro.create(speakable(line["text"]), voice=args.voice, speed=args.speed, lang=args.lang)
             wav = Path(tmp) / "line.wav"
             sf.write(wav, samples, rate)
-            # Trim the silence at both ends, then encode small: mono speech at 40 kbps.
+            # Trim the silence at both ends, then encode: mono speech at 64 kbps.
             trim = "silenceremove=start_periods=1:start_threshold=-50dB,areverse,silenceremove=start_periods=1:start_threshold=-50dB,areverse"
             subprocess.run(
-                ["ffmpeg", "-loglevel", "error", "-y", "-i", str(wav), "-af", trim, "-ac", "1", "-b:a", "40k", str(OUT / f"{line['key']}.mp3")],
+                ["ffmpeg", "-loglevel", "error", "-y", "-i", str(wav), "-af", trim, "-ac", "1", "-b:a", "64k", str(OUT / f"{line['key']}.mp3")],
                 check=True,
             )
             if i % 50 == 0:
