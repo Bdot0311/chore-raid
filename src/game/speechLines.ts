@@ -112,12 +112,14 @@ function fill(template: string, vars: Record<string, string | number>) {
 export const MAX_SPOKEN_COUNT = 20;
 
 const count = (boss: BossDef, n: number) => `${n} ${unitWord(boss, n)}`;
+const standing = (boss: BossDef, n: number) =>
+  n === 1 ? `One ${boss.unit} stands between you and victory.` : `${count(boss, n)} stand between you and victory.`;
 /** Wind-up deadlines are spoken to the nearest five seconds. */
 export const spokenSeconds = (seconds: number) => Math.max(5, Math.round(seconds / 5) * 5);
 
 export const lines = {
   start: (boss: BossDef, maxHp: number) =>
-    `${pick(BANKS[boss.kind].start)} ${maxHp <= MAX_SPOKEN_COUNT ? count(boss, maxHp) : `A great many ${boss.unitPlural}`} stand between you and victory.`,
+    `${pick(BANKS[boss.kind].start)} ${maxHp <= MAX_SPOKEN_COUNT ? standing(boss, maxHp) : `A great many ${boss.unitPlural} stand between you and victory.`}`,
   windup: (boss: BossDef, target: number, seconds: number) =>
     fill(pick(BANKS[boss.kind].windup), { n: target, units: unitWord(boss, target), s: spokenSeconds(seconds) }),
   beaten: (boss: BossDef) => pick(BANKS[boss.kind].beaten),
@@ -186,7 +188,7 @@ export function allBossSentences(bosses: BossDef[]): string[] {
       }
     }
     for (let n = 1; n <= MAX_SPOKEN_COUNT; n++) {
-      out.push(`${count(boss, n)} stand between you and victory.`, `${count(boss, n)} left.`);
+      out.push(standing(boss, n), `${count(boss, n)} left.`);
     }
     out.push(`A great many ${boss.unitPlural} stand between you and victory.`, `One ${boss.unit} left. Finish it.`);
   }

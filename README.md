@@ -76,7 +76,7 @@ Your hands are full of laundry, so the input is one tap (or one word), but every
 
 - **Code:** written with Claude Code (Anthropic) during the build window, from a plan we wrote together ([PLAN.md](PLAN.md)). I made the design calls (the HP-is-sacred rule, the deadpan tone, the art direction); Claude implemented, tested and iterated.
 - **Art:** the painted story panels, world map and lair backdrops were generated with **Bloom** from our own art-direction brief ([docs/ART_DIRECTION.md](docs/ART_DIRECTION.md)). The 3D characters, animations, dungeon, kitchen, furniture and village pieces are the free **KayKit** packs by Kay Lousberg (CC0), trimmed for the web by [tools/models.mjs](tools/models.mjs); menu portraits are renders of those models ([tools/portraits.cjs](tools/portraits.cjs)).
-- **Voice:** the narrator is recorded ahead of time with **Kokoro**, an open-weights text-to-speech model (Apache 2.0), one clip per sentence ([tools/narrate.py](tools/narrate.py)). A test checks that every line the game can say has a recording. Sound effects are synthesized in code with the Web Audio API (no audio files).
+- **Voice:** the narrator ("Merlin") is recorded ahead of time with **ElevenLabs v4**, each line in one theatrical take with delivery tags ([tools/narration-tagged.ts](tools/narration-tagged.ts), split by [tools/split_batch.py](tools/split_batch.py)). Single sentences are backed by **Kokoro**, an open-weights text-to-speech model (Apache 2.0) ([tools/narrate.py](tools/narrate.py)), and a test checks that every line the game can say has a recording. Sound effects are synthesized in code with the Web Audio API (no audio files).
 
 ## Tech
 
