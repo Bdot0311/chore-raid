@@ -7,8 +7,8 @@ const path = require('path');
 const OUT = path.join(__dirname, '..', 'public', 'art', 'portraits');
 const SHOTS = [
   ['Knight', 'Idle_Combat'], ['Barbarian', 'Idle_Combat'], ['Mage', 'Idle_Combat'], ['Rogue', 'Idle_Combat'], ['Rogue_Hooded', 'Idle_Combat'],
-  ['sock-goblin', 'Idle'], ['grease-gremlin', 'Idle'], ['dust-bunny', 'Idle'], ['scum-slug', 'Idle'], ['pillow-imp', 'Idle'], ['crumb-crawler', 'Idle'], ['bin-rat', 'Idle'],
-  ['laundry', 'Idle'], ['dishes', 'Idle'], ['clutter', 'Idle'], ['bathroom', 'Idle'], ['bedroom', 'Idle'], ['floors', 'Idle'], ['trash', 'Idle'], ['king', 'Idle'], ['custom', 'Idle'],
+  // The campaign's monsters use the painted concept art instead (docs/concept-art).
+  ['custom', 'Idle'],
 ];
 (async () => {
   execSync(`mkdir -p ${OUT}`);
