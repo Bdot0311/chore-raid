@@ -8,15 +8,18 @@ import { btn } from './ui';
 
 interface Props {
   onDone: (heroName: string, heroClass: string) => void;
+  /** A hero who has played before: welcome them back instead of asking again. */
+  returning?: { name: string; heroClass: string };
 }
 
 const PANELS = STORY_PANELS;
 
 /** The opening: three painted panels with narration, then the hero picks a name. */
-export function StoryIntro({ onDone }: Props) {
+export function StoryIntro({ onDone, returning }: Props) {
   const [i, setI] = useState(0);
-  const [name, setName] = useState('');
-  const [heroClass, setHeroClass] = useState('Knight');
+  const [name, setName] = useState(returning?.name ?? '');
+  const [heroClass, setHeroClass] = useState(returning?.heroClass || 'Knight');
+  const [changing, setChanging] = useState(false);
   const naming = i === PANELS.length;
   const panel = PANELS[Math.min(i, PANELS.length - 1)];
 
@@ -25,8 +28,9 @@ export function StoryIntro({ onDone }: Props) {
 
   useEffect(() => {
     if (!started) return;
-    speech.interrupt(naming ? say.chooseHero : panel.text);
-  }, [i, naming, panel.text, started]);
+    if (naming && returning) speech.cancel();
+    else speech.interrupt(naming ? say.chooseHero : panel.text);
+  }, [i, naming, panel.text, started, returning]);
 
   if (!started) {
     return (
@@ -108,7 +112,29 @@ export function StoryIntro({ onDone }: Props) {
 
         <div className="flex-1" />
 
-        {naming ? (
+        {naming && returning && !changing ? (
+          <motion.div className="space-y-5 pb-6 text-center" initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
+            <img src={`/art/portraits/${heroClass}.webp`} alt="" className="mx-auto h-40 w-40 object-contain drop-shadow-[0_8px_16px_rgba(0,0,0,0.8)]" />
+            <div>
+              <p className="font-display text-lg tracking-widest text-gold">WELCOME BACK</p>
+              <h1 className="mt-1 font-display text-4xl leading-tight text-white drop-shadow-lg">{returning.name}</h1>
+              <p className="mt-2 text-ash">The Mess King has been busy while you were away.</p>
+            </div>
+            <button
+              className={btn.primary}
+              onClick={() => {
+                unlockAudio();
+                speech.interrupt(say.welcome);
+                onDone(returning.name, heroClass);
+              }}
+            >
+              CONTINUE THE ADVENTURE
+            </button>
+            <button className={btn.ghost} onClick={() => setChanging(true)}>
+              Change hero
+            </button>
+          </motion.div>
+        ) : naming ? (
           <motion.div className="space-y-5 pb-2" initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
             <div className="text-center">
               <p className="font-display text-lg tracking-widest text-gold">THE HERO</p>

@@ -18,6 +18,7 @@ import {
   SpriteMaterial,
   TorusGeometry,
   BoxGeometry,
+  Box3,
   Vector2,
   Vector3,
   type BufferGeometry,
@@ -110,9 +111,11 @@ interface Pose {
   shake: number;
   tilt: number;
   forward: number;
+  /** Overall size: 1 normally, shrinking to nothing as some creatures die. */
+  size: number;
 }
 
-const REST: Pose = { lift: 0, lean: 0, squash: 1, arms: -0.15, armR: -0.15, spread: 0.15, jaw: 0.1, shake: 0, tilt: 0, forward: 0 };
+const REST: Pose = { lift: 0, lean: 0, squash: 1, arms: -0.15, armR: -0.15, spread: 0.15, jaw: 0.1, shake: 0, tilt: 0, forward: 0, size: 1 };
 
 const smooth = (x: number) => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x));
 const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
@@ -155,6 +158,8 @@ interface Running {
   t: number;
   dur: number;
   hold: boolean;
+  /** Held moves keep their last pose but still report that they finished. */
+  done?: boolean;
   resolve: () => void;
 }
 
@@ -181,6 +186,8 @@ export class Creature {
   private walk?: Walk;
   private time = Math.random() * 10;
   private agitation = 0;
+  /** How far the body reaches out in front, at size 1 (the fight keeps the hero clear of it). */
+  front = 0.7;
 
   constructor(rig: Rig, extras: Extras) {
     this.rig = rig;
@@ -220,7 +227,7 @@ export class Creature {
     const a = this.action;
     if (!a) return;
     this.action = undefined;
-    a.resolve();
+    if (!a.done) a.resolve();
   }
 
   walkTo(to: Vector3, speed = 1.6, clip = 'Walking_A'): Promise<void> {
@@ -350,10 +357,11 @@ export class Creature {
         p.armR = lerp(-1.8, 0.6, k);
         p.spread = 0.9 * k;
         if (how === 'melt') {
-          p.squash = lerp(1.15, 0.12, k);
+          p.squash = lerp(1.15, 0.2, k);
+          p.size = lerp(1, 0.55, k);
           p.lift = -(this.rig.float ?? 0) * k;
         } else if (how === 'vanish') {
-          p.squash = lerp(1, 0.05, k);
+          p.size = lerp(1, 0.02, smooth(u * 1.2));
           p.lift = 0.8 * k;
           p.tilt = k * 3;
         } else {
@@ -417,7 +425,13 @@ export class Creature {
       const outW = a.hold ? 1 : 1 - smooth((u - 0.88) / 0.12);
       pose = mix(pose, this.posed(a.motion, u, t), Math.min(inW, outW));
       if (u >= 1 && !a.hold) this.finish();
-      else if (u >= 1) a.t = a.dur;
+      else if (u >= 1) {
+        a.t = a.dur;
+        if (!a.done) {
+          a.done = true;
+          a.resolve();
+        }
+      }
     }
     const busy = a && (a.motion === 'attack' || a.motion === 'taunt' || a.motion === 'hit');
     const brace = this.loopMotion === 'brace';
@@ -431,9 +445,12 @@ export class Creature {
     const float = (r.float ?? 0) * (1 + Math.sin(t * 1.6) * 0.15);
     b.position.set(Math.sin(t * 37) * p.shake, float + p.lift, p.forward);
     b.rotation.set(p.lean, 0, p.tilt + Math.sin(t * 41) * p.shake * 0.6);
+    // Squash keeps its volume, but only so far: a flattened creature must not
+    // spread across the whole floor.
     const sq = Math.max(0.05, p.squash);
-    const side = 1 / Math.sqrt(sq);
-    b.scale.set(side, sq, side);
+    const side = Math.min(1.35, 1 / Math.sqrt(sq));
+    const size = Math.max(0.001, p.size);
+    b.scale.set(side * size, sq * size, side * size);
     if (r.head) r.head.rotation.x = -p.lean * 0.4 + Math.sin(t * 1.1) * 0.03;
     if (r.armL) r.armL.rotation.set(p.arms, 0, p.spread);
     if (r.armR) r.armR.rotation.set(p.armR, 0, -p.spread);
@@ -816,10 +833,13 @@ async function build(id: CreatureId, extras: Extras): Promise<Rig> {
     case 'lich': {
       // A haunted bedsheet: hollow eyes, a gaping mouth and a sock collection.
       const body = group();
-      const cloth = mat3(0xe9e3ff, { flatShading: false, roughness: 0.9, side: DoubleSide, emissive: new Color(0x3b1d7a), emissiveIntensity: 0.35 });
+      const cloth = mat3(0xd9d2f5, { flatShading: false, roughness: 0.9, emissive: new Color(0x2a1060), emissiveIntensity: 0.2 });
       const shape = [
         [0.0, 2.3], [0.35, 2.25], [0.6, 2.05], [0.75, 1.7], [0.78, 1.3], [0.85, 0.9], [1.0, 0.45], [1.2, 0.05],
-      ].map(([x, y]) => new Vector2(x, y));
+      ]
+        .reverse()
+        .map(([x, y]) => new Vector2(x, y));
+      // Bottom to top, so the cloth faces outward.
       const sheetGeo = new LatheGeometry(shape, 28);
       const sheet = mesh(sheetGeo, cloth);
       body.add(sheet);
@@ -858,7 +878,7 @@ async function build(id: CreatureId, extras: Extras): Promise<Rig> {
       const colors = [0xff7eb6, 0x60a5fa, 0xfacc15, 0x4ade80, 0xf97316, 0xe5e7eb];
       colors.forEach((c, k) => extras.orbit(sock(c), 1.5, 1.4, 1.1, (k / colors.length) * Math.PI * 2, 0.25));
       extras.stream(16, 0xc4b5fd, () => new Vector3(rand(-0.8, 0.8), rand(0, 0.5), rand(-0.8, 0.8)), () => new Vector3(0, rand(0.3, 0.7), 0), 2.2, 0.5, { additive: true, fade: 0.6 });
-      extras.glow(0xa78bfa, 5, 1.4);
+      extras.glow(0xa78bfa, 2.2, 1.4, 2.4);
       return { body, head, jaw, armL, armR, float: 0.35, death: 'vanish', wobble: flutter(sheet, 0.08, 1.2) };
     }
 
@@ -1389,5 +1409,16 @@ export async function creature(id: CreatureId): Promise<Creature> {
   });
   c.loop('Idle', { fade: 0 });
   c.update(0);
+  // Measure the body (not the swinging arms or tails) to know how close the hero may stand.
+  c.root.updateMatrixWorld(true);
+  const box = new Box3();
+  const skip = new Set<Object3D>([rig.armL, rig.armR].filter((o): o is Object3D => !!o));
+  rig.body.traverse((o) => {
+    const m = o as Mesh;
+    if (!m.isMesh) return;
+    for (let p: Object3D | null = m; p; p = p.parent) if (skip.has(p)) return;
+    box.expandByObject(m);
+  });
+  if (!box.isEmpty()) c.front = Math.max(0.5, Math.min(1.6, box.max.z, Math.max(box.max.x, -box.min.x)));
   return c;
 }

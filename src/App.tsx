@@ -67,9 +67,8 @@ export default function App() {
 
   useEffect(() => {
     refresh()
-      .then((p) => {
-        if (!p.storySeen) setScreen({ name: 'intro' });
-      })
+      // Every launch opens on the title and the tale, like a game; returning heroes can skip it.
+      .then(() => setScreen({ name: 'intro' }))
       .catch((err) => console.error('Failed to load saved data', err))
       .finally(() => setReady(true));
   }, []);
@@ -96,6 +95,7 @@ export default function App() {
       case 'intro':
         return (
           <StoryIntro
+            returning={profile.storySeen ? { name: profile.heroName, heroClass: profile.heroClass } : undefined}
             onDone={(heroName, heroClass) => {
               saveAndSet({ ...profile, heroName, heroClass, storySeen: true });
               setScreen({ name: 'map' });

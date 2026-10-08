@@ -21,7 +21,7 @@ import { animationClips, character, piece } from './assets';
 import { hero as heroDef, type EnemyDef, type HeroDef } from './cast';
 import { creature, type Creature } from './creature';
 import { Fx } from './fx';
-import { Motes, Post } from './post';
+import { environment, Motes, Post } from './post';
 import { buildLair, lairLook, SPOT_GAP, type BuiltLair } from './lairs';
 
 /**
@@ -106,6 +106,8 @@ export class World {
   private hero!: Actor;
   private heroDef!: HeroDef;
   private enemy!: Actor | Creature;
+  /** How far the enemy's body reaches toward the hero; nobody stands inside it. */
+  private body = 0.9;
   private post?: Post;
   private motes?: Motes;
   private key = new DirectionalLight(0xffffff, 2.2);
@@ -199,11 +201,12 @@ export class World {
     // --- marks along the hall
     const z0 = -o.spot * SPOT_GAP;
     const big = o.enemy.boss;
+    this.body = ('rig' in monster ? monster.front : 0.6) * o.enemy.size;
     this.heroMark.set(-1.2, 0, z0 + 2.2);
-    this.enemyMark.set(0.3, 0, z0 - (big ? 2.4 : 1.7));
+    this.enemyMark.set(0.3, 0, z0 - Math.max(big ? 2.4 : 1.7, 1.2 + this.body));
     // A three-quarter view from behind the hero's right shoulder, framing both fighters.
     const mid = this.heroMark.clone().lerp(this.enemyMark, 0.55);
-    const far = big ? 1.25 : 1.1;
+    const far = (big ? 1.25 : 1.1) + Math.max(0, this.body - 1.3) * 0.2;
     // Aim at the floor just in front of them, so the fighters sit above the HUD.
     this.camLook.set(mid.x + 0.2, big ? 1.5 : 1, mid.z + 1.4);
     this.camBase.set(mid.x + 2.2 * far, 5.6 * far, mid.z + 11.5 * far);
@@ -268,7 +271,9 @@ export class World {
     canvas.className = 'world-canvas';
     canvas.style.opacity = '0';
     host.append(canvas, this.hurtEl, this.flashEl, this.overlay);
-    this.post = new Post(renderer(), this.scene, this.camera);
+    this.scene.environment = environment(renderer());
+    this.scene.environmentIntensity = 0.35;
+    this.post = new Post(renderer(), this.scene, this.camera, 0.55, !lowQuality);
     this.post.enabled = !lowQuality;
     this.resize = new ResizeObserver(() => this.fit());
     this.resize.observe(host);
@@ -535,7 +540,7 @@ export class World {
 
   /** Dashes in (or casts from range), plays the attack, calls impact mid-swing, steps back. */
   private async attackRun(clip: string, speed: number, onImpact: () => void) {
-    const reach = 1.5 + this.o.enemy.size * 0.45;
+    const reach = this.body + 0.95;
     const toEnemy = this.enemyMark.clone().sub(this.heroMark).setY(0).normalize();
     const lungeTo = this.heroDef.ranged ? this.heroMark.clone() : this.enemyMark.clone().addScaledVector(toEnemy, -reach);
     const from = this.hero.root.position.clone();
@@ -648,7 +653,7 @@ export class World {
     this.sparring = true;
     const caster = this.o.enemy.attack.startsWith('Spellcast');
     const toHero = this.heroMark.clone().sub(this.enemyMark).setY(0).normalize();
-    const lunge = caster ? this.enemyMark.clone() : this.heroMark.clone().addScaledVector(toHero, -(1.3 + this.o.enemy.size * 0.5));
+    const lunge = caster ? this.enemyMark.clone() : this.heroMark.clone().addScaledVector(toHero, -(this.body + 1.0));
     const from = this.enemy.root.position.clone();
     this.tween(0.14, (k) => this.enemy.root.position.lerpVectors(from, lunge, k));
     const clips = caster ? ['Spellcast_Shoot', 'Spellcast_Shoot'] : [this.o.enemy.attack, '1H_Melee_Attack_Slice_Horizontal', '1H_Melee_Attack_Stab', '1H_Melee_Attack_Slice_Diagonal'];
@@ -708,7 +713,7 @@ export class World {
       if (this.destroyed || this.dead) return;
       const caster = this.o.enemy.attack.startsWith('Spellcast');
       const toHero = this.heroMark.clone().sub(this.enemyMark).setY(0).normalize();
-      const lunge = caster ? this.enemy.root.position.clone() : this.heroMark.clone().addScaledVector(toHero, -(1.3 + this.o.enemy.size * 0.5));
+      const lunge = caster ? this.enemy.root.position.clone() : this.heroMark.clone().addScaledVector(toHero, -(this.body + 0.95));
       const from = this.enemy.root.position.clone();
       this.tween(0.16, (k) => this.enemy.root.position.lerpVectors(from, lunge, k));
       const clip = this.o.enemy.attack;
@@ -867,6 +872,7 @@ export class World {
       r.setPixelRatio(1);
       r.shadowMap.type = BasicShadowMap;
       if (this.post) this.post.enabled = false;
+      this.post?.lighten();
       this.fit();
     }
   }

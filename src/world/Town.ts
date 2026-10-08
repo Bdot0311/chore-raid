@@ -20,7 +20,7 @@ import { Actor } from './Actor';
 import { animationClips, character, piece } from './assets';
 import { hero as heroDef, HEROES, type LairId } from './cast';
 import { lairLook, mergeStatic } from './lairs';
-import { Motes, Post } from './post';
+import { environment, Motes, Post } from './post';
 import { lair, renderer } from './World';
 
 /**
@@ -283,6 +283,8 @@ export class Town {
     scene.add(this.hero.root);
     this.hero.root.position.set(0.4, 0, 17);
     this.hero.root.rotation.y = Math.PI;
+    scene.environment = environment(renderer());
+    scene.environmentIntensity = 0.35;
     const post = new Post(renderer(), scene, this.camera, 0.7);
     this.inside = { scene, post, motes, torches, door: door.getObjectByName('wall_doorway_door') };
     this.fit();
