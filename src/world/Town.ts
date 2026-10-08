@@ -20,7 +20,7 @@ import { Actor } from './Actor';
 import { animationClips, character, piece } from './assets';
 import { hero as heroDef, HEROES, type LairId } from './cast';
 import { lairLook, mergeStatic } from './lairs';
-import { environment, Motes, Post } from './post';
+import { deviceTier, environment, Motes, Post } from './post';
 import { lair, renderer } from './World';
 
 /**
@@ -126,6 +126,7 @@ export class Town {
   private resize?: ResizeObserver;
   private startX = -HEX_W * 0.8;
   private gateX = HEX_W * 3.2;
+  private outsidePost?: Post;
   /** Inside the lair: the hall, its torches and the chase camera. */
   private inside?: {
     scene: Scene;
@@ -158,7 +159,8 @@ export class Town {
     const sun = new DirectionalLight(0xfff1d6, 2.6);
     sun.position.set(-30, 50, 40);
     sun.castShadow = true;
-    sun.shadow.mapSize.set(1024, 1024);
+    const shadowRes = deviceTier() === 'high' ? 2048 : 1024;
+    sun.shadow.mapSize.set(shadowRes, shadowRes);
     const sc = sun.shadow.camera;
     sc.left = -30;
     sc.right = 30;
@@ -166,9 +168,12 @@ export class Town {
     sc.bottom = -30;
     sc.far = 140;
     sun.shadow.normalBias = 0.05;
+    this.scene.environment = environment(renderer());
+    this.scene.environmentIntensity = 0.3;
     this.scene.add(new HemisphereLight(0xdff2ff, 0x6a8f4e, 1.5), sun, sun.target);
     town.removeFromParent();
     this.scene.add(town);
+    this.outsidePost = new Post(renderer(), this.scene, this.camera, 0.35, deviceTier());
 
     // The lair gate at the end of the road, hung with its region's color.
     gate.position.set(this.gateX + 6, 0, 0);
@@ -285,7 +290,7 @@ export class Town {
     this.hero.root.rotation.y = Math.PI;
     scene.environment = environment(renderer());
     scene.environmentIntensity = 0.35;
-    const post = new Post(renderer(), scene, this.camera, 0.7);
+    const post = new Post(renderer(), scene, this.camera, 0.7, deviceTier());
     this.inside = { scene, post, motes, torches, door: door.getObjectByName('wall_doorway_door') };
     this.fit();
     canvas.style.transition = 'opacity 450ms ease-out';
@@ -296,6 +301,7 @@ export class Town {
   destroy() {
     this.destroyed = true;
     this.inside?.post.dispose();
+    this.outsidePost?.dispose();
     cancelAnimationFrame(this.raf);
     this.resize?.disconnect();
     const canvas = renderer().domElement;
@@ -309,6 +315,7 @@ export class Town {
     if (!w || !h) return;
     renderer().setSize(w, h, false);
     this.inside?.post.setSize(w, h);
+    this.outsidePost?.setSize(w, h);
     this.camera.aspect = w / h;
     this.camera.fov = w / h < 0.6 ? 58 : 44;
     this.camera.updateProjectionMatrix();
@@ -349,6 +356,7 @@ export class Town {
     // A low side-on tracking shot, a little ahead of the hero.
     this.camera.position.set(p.x - 2, 6.5, p.z + 17);
     this.camera.lookAt(p.x + 3, 2.2, p.z - 2);
-    renderer().render(this.scene, this.camera);
+    if (this.outsidePost) this.outsidePost.render(dt);
+    else renderer().render(this.scene, this.camera);
   };
 }

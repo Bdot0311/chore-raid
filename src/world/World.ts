@@ -21,7 +21,7 @@ import { animationClips, character, piece } from './assets';
 import { hero as heroDef, type EnemyDef, type HeroDef } from './cast';
 import { creature, type Creature } from './creature';
 import { Fx } from './fx';
-import { environment, Motes, Post } from './post';
+import { deviceTier, environment, Motes, Post } from './post';
 import { buildLair, lairLook, SPOT_GAP, type BuiltLair } from './lairs';
 
 /**
@@ -61,13 +61,14 @@ let lowQuality = false;
 /** One WebGL context for the whole app: phones cap how many a page may open. */
 export function renderer() {
   if (!sharedRenderer) {
-    sharedRenderer = new WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-    sharedRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+    const tier = deviceTier();
+    sharedRenderer = new WebGLRenderer({ antialias: tier !== 'low', powerPreference: 'high-performance' });
+    sharedRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, tier === 'high' ? 2 : tier === 'mid' ? 1.75 : 1.5));
     sharedRenderer.outputColorSpace = SRGBColorSpace;
     sharedRenderer.toneMapping = ACESFilmicToneMapping;
-    sharedRenderer.toneMappingExposure = 1.15;
+    sharedRenderer.toneMappingExposure = 1.2;
     sharedRenderer.shadowMap.enabled = true;
-    sharedRenderer.shadowMap.type = PCFSoftShadowMap;
+    sharedRenderer.shadowMap.type = tier === 'low' ? BasicShadowMap : PCFSoftShadowMap;
   }
   return sharedRenderer;
 }
@@ -115,6 +116,8 @@ export class World {
   private torchLights: PointLight[] = [];
   private enemyLight = new PointLight(0xff3b30, 0, 9, 1.6);
   private heroLight = new PointLight(0xffc94d, 0, 6, 1.6);
+  /** Cool rim light from behind the fighters, to lift their edges off the background. */
+  private rim = new DirectionalLight(0x9ec5ff, 0);
   private resize?: ResizeObserver;
   private raf = 0;
   private last = 0;
@@ -179,7 +182,8 @@ export class World {
     this.hemi.intensity = look.ambient;
     this.key.color.set(look.key);
     this.key.castShadow = true;
-    this.key.shadow.mapSize.set(1024, 1024);
+    const shadowRes = deviceTier() === 'high' ? 2048 : 1024;
+    this.key.shadow.mapSize.set(shadowRes, shadowRes);
     const sc = this.key.shadow.camera;
     sc.left = -9;
     sc.right = 9;
@@ -189,7 +193,7 @@ export class World {
     sc.far = 40;
     this.key.shadow.bias = -0.0008;
     this.key.shadow.normalBias = 0.04;
-    this.scene.add(this.hemi, this.key, this.key.target, this.enemyLight, this.heroLight);
+    this.scene.add(this.hemi, this.key, this.key.target, this.enemyLight, this.heroLight, this.rim, this.rim.target);
     for (let i = 0; i < 2; i++) {
       const l = new PointLight(look.torch, 0, 14, 1.5);
       this.torchLights.push(l);
@@ -214,6 +218,9 @@ export class World {
     this.scene.add(this.motes.points);
     this.key.position.set(-6, 14, z0 + 8);
     this.key.target.position.set(0, 0, z0 - 1);
+    this.rim.position.set(3.5, 4.5, z0 - 9);
+    this.rim.target.position.set(0, 1.2, z0 - 1);
+    this.rim.intensity = 0.65;
     const near = built.torches
       .map((t) => ({ t, d: Math.abs(t.z - z0) }))
       .sort((a, b) => a.d - b.d)
@@ -225,7 +232,7 @@ export class World {
     if (!near.length) {
       // Kitchens have ceiling lights instead of torches.
       this.torchLights[0].position.set(0, 6, z0 + 1);
-      this.torchLights[0].intensity = 18;
+      this.torchLights[0].intensity = 9;
     }
 
     // --- hero
@@ -273,7 +280,7 @@ export class World {
     host.append(canvas, this.hurtEl, this.flashEl, this.overlay);
     this.scene.environment = environment(renderer());
     this.scene.environmentIntensity = 0.35;
-    this.post = new Post(renderer(), this.scene, this.camera, 0.55, !lowQuality);
+    this.post = new Post(renderer(), this.scene, this.camera, 0.55, lowQuality ? 'low' : deviceTier());
     this.post.enabled = !lowQuality;
     this.resize = new ResizeObserver(() => this.fit());
     this.resize.observe(host);
@@ -906,7 +913,7 @@ export class World {
   private lights(dt: number) {
     const t = this.time;
     this.torchLights.forEach((l, i) => {
-      if (l.intensity > 0) l.intensity = (i === 0 && !this.torchLights[1].intensity ? 18 : 14) * (0.85 + Math.sin(t * 13 + i * 3) * 0.07 + Math.sin(t * 7.3 + i) * 0.06);
+      if (l.intensity > 0) l.intensity = (i === 0 && !this.torchLights[1].intensity ? 9 : 14) * (0.85 + Math.sin(t * 13 + i * 3) * 0.07 + Math.sin(t * 7.3 + i) * 0.06);
     });
     this.healGlow = Math.max(0, this.healGlow - dt * 0.6);
     const chest = this.enemyChest();

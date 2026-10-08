@@ -23,22 +23,51 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 
-/** A gentle grade: a touch more colour and contrast, darker corners. */
-const GradeShader = {
-  uniforms: { tDiffuse: { value: null }, vignette: { value: 0.32 }, saturation: { value: 1.12 } },
+/**
+ * Cinematic grade: vignette, film grain, a whisper of chromatic aberration and
+ * a gentle contrast/saturation lift. The last 10% that makes a scene read
+ * rendered instead of realtime.
+ */
+const Cinematic = {
+  uniforms: {
+    tDiffuse: { value: null },
+    time: { value: 0 },
+    vignette: { value: 0.32 },
+    grain: { value: 0.035 },
+    aberration: { value: 0.0018 },
+  },
   vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
   fragmentShader: `
-    uniform sampler2D tDiffuse; uniform float vignette; uniform float saturation; varying vec2 vUv;
+    uniform sampler2D tDiffuse; uniform float time; uniform float vignette; uniform float grain; uniform float aberration;
+    varying vec2 vUv;
+    float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
     void main() {
-      vec4 c = texture2D(tDiffuse, vUv);
-      float l = dot(c.rgb, vec3(0.2126, 0.7152, 0.0722));
-      c.rgb = mix(vec3(l), c.rgb, saturation);
-      c.rgb = (c.rgb - 0.5) * 1.06 + 0.5;
       vec2 d = vUv - 0.5;
+      vec2 off = d * aberration;
+      vec4 c = vec4(texture2D(tDiffuse, vUv + off).r, texture2D(tDiffuse, vUv).g, texture2D(tDiffuse, vUv - off).b, 1.0);
+      c.rgb = (c.rgb - 0.5) * 1.07 + 0.5;
+      float l = dot(c.rgb, vec3(0.2126, 0.7152, 0.0722));
+      c.rgb = mix(vec3(l), c.rgb, 1.12);
       c.rgb *= 1.0 - vignette * smoothstep(0.25, 0.75, length(d) * 1.25);
+      c.rgb += (hash(vUv * vec2(960.0, 540.0) + time * 60.0) - 0.5) * grain;
       gl_FragColor = c;
     }`,
 };
+
+/** How much the device can take. Anything unreadable defaults up, never down. */
+export type Tier = 'high' | 'mid' | 'low';
+let tierCache: Tier | undefined;
+export function deviceTier(): Tier {
+  if (tierCache) return tierCache;
+  const nav = navigator as Navigator & { deviceMemory?: number };
+  const ua = nav.userAgent || '';
+  const tablet = /iPad|Tablet/i.test(ua);
+  const phone = !tablet && /Android|iPhone|iPod|Windows Phone|Mobile/i.test(ua);
+  const cores = nav.hardwareConcurrency ?? 4;
+  const mem = nav.deviceMemory ?? 4;
+  tierCache = phone ? (cores <= 4 || mem <= 2 ? 'low' : 'mid') : tablet ? 'mid' : cores >= 6 && mem >= 4 ? 'high' : 'mid';
+  return tierCache;
+}
 
 let envMap: Texture | undefined;
 /** Soft studio light all round, so materials pick up shape instead of looking flat. */
@@ -60,17 +89,19 @@ export class Post {
   private composer: EffectComposer;
   private bloom: UnrealBloomPass;
   private ao?: GTAOPass;
+  private grade: ShaderPass;
   private renderer: WebGLRenderer;
   private scene: Scene;
   private camera: Camera;
   enabled = true;
 
-  constructor(renderer: WebGLRenderer, scene: Scene, camera: Camera, strength = 0.55, ao = true) {
+  constructor(renderer: WebGLRenderer, scene: Scene, camera: Camera, strength = 0.55, tier: Tier = 'high') {
     this.renderer = renderer;
     this.scene = scene;
     this.camera = camera;
     // Multisampled, so edges stay smooth through the effects.
-    const target = new WebGLRenderTarget(1, 1, { type: HalfFloatType, samples: 4 });
+    const target = new WebGLRenderTarget(1, 1, { type: HalfFloatType, samples: tier === 'low' ? 0 : 4 });
+    const ao = tier === 'high';
     this.composer = new EffectComposer(renderer, target);
     this.composer.addPass(new RenderPass(scene, camera));
     if (ao) {
@@ -94,10 +125,17 @@ export class Post {
       };
       this.composer.addPass(this.ao);
     }
-    this.bloom = new UnrealBloomPass(new Vector2(256, 256), strength, 0.45, 0.78);
+    const res = tier === 'high' ? 512 : tier === 'mid' ? 384 : 256;
+    this.bloom = new UnrealBloomPass(new Vector2(res, res), tier === 'low' ? strength * 0.6 : strength, 0.45, 0.9);
     this.composer.addPass(this.bloom);
     this.composer.addPass(new OutputPass());
-    this.composer.addPass(new ShaderPass(GradeShader));
+    // Graded after tone mapping, so the grain and vignette sit on the final image.
+    this.grade = new ShaderPass(Cinematic);
+    if (tier === 'low') {
+      this.grade.uniforms.grain.value = 0.02;
+      this.grade.uniforms.aberration.value = 0;
+    }
+    this.composer.addPass(this.grade);
   }
 
   /** Drops the expensive extras for a slow phone, keeping the glow. */
@@ -111,8 +149,10 @@ export class Post {
   }
 
   render(dt: number) {
-    if (this.enabled) this.composer.render(dt);
-    else this.renderer.render(this.scene, this.camera);
+    if (this.enabled) {
+      this.grade.uniforms.time.value += dt;
+      this.composer.render(dt);
+    } else this.renderer.render(this.scene, this.camera);
   }
 
   dispose() {

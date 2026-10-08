@@ -71,7 +71,7 @@ const LAIRS: Record<LairId, LairDef> = {
     },
   },
   dishes: {
-    look: { fog: 0x0d2230, fogNear: 10, fogFar: 44, sky: 0xc9f0ff, ground: 0x23343a, key: 0xfff1d6, torch: 0x9fe8ff, ambient: 1.3 },
+    look: { fog: 0x0d2230, fogNear: 10, fogFar: 44, sky: 0xc9f0ff, ground: 0x23343a, key: 0xfff1d6, torch: 0x9fe8ff, ambient: 0.85 },
     floor: 'k_floor_kitchen',
     floorY: -0.5,
     wall: ['k_wall', 'k_wall_window_closed'],

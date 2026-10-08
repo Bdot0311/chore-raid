@@ -931,9 +931,9 @@ async function build(id: CreatureId, extras: Extras): Promise<Rig> {
       const legMat = mat3(0x7c8a92, { metalness: 0.4 });
       const legs = [-0.4, 0.4].map((x) => group('', x, 0.55, 0, mesh(new CylinderGeometry(0.13, 0.16, 0.6, 8), legMat, 0, -0.27, 0)));
       body.add(...legs);
-      extras.stream(20, 0xe0f7ff, () => new Vector3(rand(-0.7, 0.7), rand(1.2, 2.4), rand(-0.5, 0.5)), () => new Vector3(rand(-0.1, 0.1), rand(0.3, 0.6), rand(-0.1, 0.1)), 2, 0.32, { fade: 0.9 });
+      extras.stream(10, 0xe0f7ff, () => new Vector3(rand(-0.7, 0.7), rand(1.2, 2.4), rand(-0.5, 0.5)), () => new Vector3(rand(-0.1, 0.1), rand(0.3, 0.6), rand(-0.1, 0.1)), 2, 0.28, { fade: 0.5 });
       extras.stream(10, 0x7dd3fc, () => new Vector3(rand(-0.8, 0.8), 1.5, rand(-0.6, 0.6)), () => new Vector3(0, -2.4, 0), 0.6, 0.14, { additive: true, fade: 0.7 });
-      extras.glow(0x38bdf8, 4, 1.6);
+      extras.glow(0x38bdf8, 2, 1.6, 2.4);
       return { body, head, jaw, armL, armR, legs, death: 'topple', wobble: jiggle(suds, 0.04, 3) };
     }
 
