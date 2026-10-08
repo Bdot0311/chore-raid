@@ -13,7 +13,7 @@ import { allBossLines, allBossSentences } from './speechLines';
 export const STORY_PANELS = [
   {
     art: '/art/story-1.webp',
-    text: 'Hear now a tale! One ordinary evening, the Mess King moved into your home. Nobody invited him. He brought laundry.',
+    text: 'Hear now a tale! One ordinary evening, the Mess King moved into your home. Nobody invited him. He brought all his messy baggage, and soon everything was a mess.',
   },
   {
     art: '/art/story-2.webp',

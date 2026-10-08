@@ -4,7 +4,7 @@ Film on a phone, vertical. Screen-record the game and film the real chore; cut b
 
 | Time | Shot | Voice-over / on screen |
 |---|---|---|
-| 0:00–0:08 | Story intro: the house swallowed by laundry, the Broomblade in the closet | (let the narration play) "One ordinary evening, the Mess King moved in. Nobody invited him. He brought laundry." |
+| 0:00–0:08 | Story intro: the house swallowed by laundry, the Broomblade in the closet | (let the narration play) "Hear now a tale! One ordinary evening, the Mess King moved into your home. Nobody invited him. He brought all his messy baggage, and soon everything was a mess." |
 | 0:08–0:14 | Pick a hero (Rogue), name them; the world map; the hero runs through the village to the Laundry Lair gate | "Your home is a dungeon. Every chore is a lair to win back." |
 | 0:14–0:24 | Laundry Lair, 2 loads. Step card "Gather the load", read aloud; real hands grab clothes; a Sock Skeleton claws out of the floor; tap DONE and the hero cuts it down | "It walks you through the real chore, one step at a time." |
 | 0:24–0:32 | "Start the washer": real washer starting, timer starts, the hero sits down and the skeleton naps, phone goes in a pocket; cut to the ring when it's done | "Machine cycles are timers. It rings when the washer's done." |

@@ -23,6 +23,23 @@ type Listener = (speaking: boolean) => void;
 const RECORDED = new Set<string>(manifest);
 
 /**
+ * The clips for a line: the longest runs of sentences that were recorded in one
+ * take, so a boss line stays whole even when a count is stitched on after it.
+ */
+function segmentKeys(text: string): string[] {
+  const s = sentences(text);
+  const keys: string[] = [];
+  let i = 0;
+  while (i < s.length) {
+    let j = s.length;
+    while (j > i + 1 && !RECORDED.has(clipKey(lineText(s.slice(i, j).join(' '))))) j--;
+    keys.push(clipKey(lineText(s.slice(i, j).join(' '))));
+    i = j;
+  }
+  return keys;
+}
+
+/**
  * Clips are decoded offline, so they can load before the first tap unlocks
  * audio. A decoded buffer plays on any context.
  */
@@ -98,12 +115,7 @@ class Speech {
 
   /** Starts fetching a line's recordings so it plays without a pause. */
   preload(text: string) {
-    const whole = clipKey(lineText(text));
-    if (RECORDED.has(whole)) {
-      this.clip(whole);
-      return;
-    }
-    for (const s of sentences(text)) this.clip(clipKey(s));
+    for (const k of segmentKeys(text)) this.clip(k);
   }
 
   private clip(key: string): Promise<AudioBuffer | undefined> {
@@ -141,9 +153,7 @@ class Speech {
     if (!next) return;
     this.setSpeaking(true);
     const gen = this.generation;
-    // A whole line recorded in one take flows best; otherwise stitch its sentences.
-    const whole = clipKey(lineText(next.text));
-    const keys = RECORDED.has(whole) ? [whole] : sentences(next.text).map(clipKey);
+    const keys = segmentKeys(next.text);
     let ok = false;
     if (keys.every((k) => RECORDED.has(k)) && (await sfx.voiceReady()) && gen === this.generation) ok = await this.playClips(keys, gen);
     if (gen !== this.generation) return;
