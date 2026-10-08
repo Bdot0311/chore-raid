@@ -2,6 +2,7 @@ import { Color, DirectionalLight, HemisphereLight, PerspectiveCamera, Scene, SRG
 import { Actor } from './Actor';
 import { animationClips, character, piece } from './assets';
 import { enemyByKey, hero, HEROES } from './cast';
+import { dress } from './costume';
 
 /**
  * Renders one character on a transparent background, for the menu portraits
@@ -41,6 +42,7 @@ export async function mountPortrait(key: string, pose: string, t: number) {
     for (const [part, color] of enemy.glows) actor.glow(part, color, 2.5);
     if (enemy.weapon) actor.attach(await piece(enemy.weapon), 'handslot.r');
     if (enemy.offhand) actor.attach(await piece(enemy.offhand), 'handslot.l');
+    if (enemy.costume) (await dress(actor, enemy.costume)).update(0.5, 1.3);
   }
   scene.add(actor.root);
   actor.root.rotation.y = 0.35;

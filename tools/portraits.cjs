@@ -8,7 +8,7 @@ const OUT = path.join(__dirname, '..', 'public', 'art', 'portraits');
 const SHOTS = [
   ['Knight', 'Idle_Combat'], ['Barbarian', 'Idle_Combat'], ['Mage', 'Idle_Combat'], ['Rogue', 'Idle_Combat'], ['Rogue_Hooded', 'Idle_Combat'],
   ['sock-goblin', 'Taunt', 0.8], ['grease-gremlin', 'Taunt', 0.8], ['dust-bunny', 'Taunt', 0.8],
-  ['laundry', 'Spellcasting'], ['dishes', 'Idle_Combat'], ['clutter', 'Idle_Combat'], ['king', 'Spellcasting'], ['custom', 'Idle_Combat'],
+  ['laundry', 'Spellcasting'], ['dishes', 'Idle_Combat'], ['clutter', 'Idle_Combat'], ['king', 'Idle_Combat'], ['custom', 'Idle_Combat'],
 ];
 (async () => {
   execSync(`mkdir -p ${OUT}`);

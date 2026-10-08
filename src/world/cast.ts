@@ -1,4 +1,5 @@
 import type { BossDef } from '../game/types';
+import type { CostumeId } from './costume';
 
 /**
  * Who plays whom: the hero classes the player picks from, and the 3D model,
@@ -107,6 +108,8 @@ export interface EnemyDef {
   lair: LairId;
   /** Particle colors when struck. */
   material: number[];
+  /** Boss outfit built from its lair's props (costume.ts). */
+  costume?: CostumeId;
 }
 
 const ENEMIES: Record<string, EnemyDef> = {
@@ -151,56 +154,52 @@ const ENEMIES: Record<string, EnemyDef> = {
   },
   laundry: {
     model: 'Skeleton_Mage',
-    size: 1.75,
+    size: 1.9,
     weapon: 'Skeleton_Staff',
     tints: [['Skeleton_Mage_Hat', 0x9b6bff]],
     glows: [['Skeleton_Mage_Eyes', 0xc084fc]],
     attack: 'Spellcast_Shoot',
     boss: true,
-    breaks: ['Skeleton_Mage_Hat', 'Skeleton_Mage_Jaw'],
+    breaks: ['hatsock', 'Skeleton_Mage_Hat', 'Skeleton_Mage_Jaw'],
     lair: 'laundry',
     material: [0x34428f, 0xc23b3b, 0xe8e2d0, 0xe39b2d, 0x7a3fb0, 0x5b7f3a, 0xd94f8a],
+    costume: 'lich',
   },
   dishes: {
     model: 'Skeleton_Warrior',
-    size: 1.8,
-    weapon: 'Skeleton_Axe',
-    offhand: 'Skeleton_Shield_Large_A',
-    tints: [['Skeleton_Warrior_Cloak', 0x5ad1f0]],
+    size: 2,
+    tints: [['Skeleton_Warrior_Cloak', 0x2f8fb0]],
     glows: [['Skeleton_Warrior_Eyes', 0x7dd3fc]],
     attack: '1H_Melee_Attack_Chop',
     boss: true,
-    breaks: ['offhand', 'Skeleton_Warrior_Helmet', 'Skeleton_Warrior_Jaw'],
+    breaks: ['offhand', 'pothelm', 'Skeleton_Warrior_Jaw'],
     lair: 'dishes',
     material: [0xe9f6ff, 0x8fd3e8, 0x3aa7c9, 0xffffff, 0xc9a06a],
+    costume: 'warlord',
   },
   clutter: {
     model: 'Skeleton_Warrior',
-    size: 1.9,
-    weapon: 'Skeleton_Blade',
-    offhand: 'Skeleton_Shield_Large_B',
-    tints: [['Skeleton_Warrior_Cloak', 0xf2a03d]],
+    size: 2.3,
+    tints: [['Skeleton_Warrior_Cloak', 0x8a5a2b]],
     glows: [['Skeleton_Warrior_Eyes', 0xffb347]],
-    attack: '1H_Melee_Attack_Slice_Diagonal',
+    attack: '2H_Melee_Attack_Chop',
     boss: true,
-    breaks: ['offhand', 'Skeleton_Warrior_Helmet', 'Skeleton_Warrior_Jaw'],
+    breaks: ['offhand', 'bucket', 'backbox'],
     lair: 'clutter',
     material: [0xd98b3a, 0x8a5a2b, 0x3b5b8f, 0xc94f2f, 0xe6d3a3],
+    costume: 'colossus',
   },
   king: {
     model: 'Skeleton_Mage',
-    size: 2.1,
-    weapon: 'Skeleton_Staff',
-    tints: [['Skeleton_Mage_Hat', 0xffd24d]],
-    glows: [
-      ['Skeleton_Mage_Eyes', 0xff5a4d],
-      ['Skeleton_Mage_Hat', 0x6b4a00],
-    ],
-    attack: 'Spellcast_Shoot',
+    size: 2.4,
+    tints: [],
+    glows: [['Skeleton_Mage_Eyes', 0xff2d1a]],
+    attack: '2H_Melee_Attack_Chop',
     boss: true,
-    breaks: ['Skeleton_Mage_Jaw', 'Skeleton_Mage_Hat'],
+    breaks: ['gut0', 'gut2', 'gut4', 'crown'],
     lair: 'throne',
-    material: [0x8b5cf6, 0xffc94d, 0xe8e2d0, 0x34428f, 0xc23b3b],
+    material: [0x84cc16, 0x6b7f2a, 0x8a6a3a, 0xffc94d, 0x4a4a4a],
+    costume: 'king',
   },
   custom: {
     model: 'Skeleton_Warrior',

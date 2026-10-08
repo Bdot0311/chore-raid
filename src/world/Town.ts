@@ -1,4 +1,6 @@
 import {
+  AdditiveBlending,
+  CanvasTexture,
   Color,
   DirectionalLight,
   Fog,
@@ -7,14 +9,19 @@ import {
   Mesh,
   MeshStandardMaterial,
   PerspectiveCamera,
+  PointLight,
   Scene,
+  Sprite,
+  SpriteMaterial,
   Vector3,
+  type Object3D,
 } from 'three';
 import { Actor } from './Actor';
 import { animationClips, character, piece } from './assets';
 import { hero as heroDef, HEROES } from './cast';
-import { mergeStatic } from './lairs';
-import { renderer } from './World';
+import { lairLook, mergeStatic } from './lairs';
+import { Motes, Post } from './post';
+import { lair, renderer } from './World';
 
 /**
  * The walk to a lair: the hero sets off down the village road past houses and
@@ -38,6 +45,25 @@ const GATE_COLOR: Record<TownRegion, number> = {
 const sleep = (ms: number) => new Promise((r) => window.setTimeout(r, ms));
 
 let townCache: Promise<Group> | undefined;
+
+let flame: CanvasTexture | undefined;
+function flameTexture() {
+  if (flame) return flame;
+  const c = document.createElement('canvas');
+  c.width = 32;
+  c.height = 64;
+  const g = c.getContext('2d')!;
+  const grad = g.createRadialGradient(16, 44, 2, 16, 40, 30);
+  grad.addColorStop(0, 'rgba(255,255,230,1)');
+  grad.addColorStop(0.4, 'rgba(255,200,120,0.8)');
+  grad.addColorStop(1, 'rgba(255,120,40,0)');
+  g.fillStyle = grad;
+  g.beginPath();
+  g.ellipse(16, 40, 13, 24, 0, 0, Math.PI * 2);
+  g.fill();
+  flame = new CanvasTexture(c);
+  return flame;
+}
 
 export function preloadTown(heroId?: string) {
   townCache ??= buildTown();
@@ -94,14 +120,24 @@ export class Town {
   private last = 0;
   private destroyed = false;
   private resize?: ResizeObserver;
-  private startX = -HEX_W * 1.8;
+  private startX = -HEX_W * 0.8;
   private gateX = HEX_W * 3.2;
+  /** Inside the lair: the hall, its torches and the chase camera. */
+  private inside?: {
+    scene: Scene;
+    post: Post;
+    door?: Object3D;
+    motes: Motes;
+    torches: { light: PointLight; flame: Sprite; z: number; on: number }[];
+  };
+  private time = 0;
 
   /** Resolves when the hero reaches the gate (or the scene is torn down). */
   async play(host: HTMLElement, o: TownOptions): Promise<void> {
     this.host = host;
     townCache ??= buildTown();
     townCache.catch(() => (townCache = undefined));
+    void lair(o.region).catch(() => undefined);
     const h = heroDef(o.hero);
     const others = HEROES.filter((x) => x.id !== h.id && x.id !== 'Rogue_Hooded').slice(0, 3);
     const [town, clips, heroModel, gate, ...villagers] = await Promise.all([
@@ -188,11 +224,72 @@ export class Town {
     void cheer();
     await walk;
     if (this.destroyed) return;
-    await this.hero.walkTo(new Vector3(this.gateX + 6, 0, 0.5), 2.4, 'Walking_A');
+    await this.hero.walkTo(new Vector3(this.gateX + 4.5, 0, 0.5), 2.4, 'Walking_A');
+    if (this.destroyed) return;
+    await this.enterLair(o.region, canvas);
+  }
+
+  /** Through the gate: the hero walks into the lair hall as its torches flare up. */
+  private async enterLair(region: TownRegion, canvas: HTMLCanvasElement) {
+    canvas.style.transition = 'opacity 350ms ease-in';
+    canvas.style.opacity = '0';
+    const [built] = await Promise.all([lair(region), sleep(380)]);
+    if (this.destroyed) return;
+    const look = lairLook(region);
+    const scene = new Scene();
+    scene.background = new Color(look.fog);
+    scene.fog = new Fog(look.fog, 6, look.fogFar);
+    scene.add(new HemisphereLight(look.sky, look.ground, look.ambient * 0.7));
+    built.root.removeFromParent();
+    scene.add(built.root);
+    // The entrance: an arch in a wall, torches either side.
+    const [door, wl, wr, wl2, wr2] = await Promise.all(['d_wall_doorway', 'd_wall', 'd_wall', 'd_wall', 'd_wall'].map((n) => piece(n)));
+    if (this.destroyed) return;
+    door.position.set(0, 0, 10);
+    wl.position.set(-4, 0, 10);
+    wr.position.set(4, 0, 10);
+    wl2.position.set(-8, 0, 10);
+    wr2.position.set(8, 0, 10);
+    scene.add(door, wl, wr, wl2, wr2);
+    // Flagstones up to the door.
+    const tiles = await Promise.all([-6, -2, 2, 6].flatMap((x) => [14, 18].map((z) => piece('d_floor_tile_large').then((t) => (t.position.set(x, 0, z), t)))));
+    if (this.destroyed) return;
+    scene.add(...tiles);
+
+    const flameTex = flameTexture();
+    const torches: NonNullable<Town['inside']>['torches'] = [];
+    const inner = built.torches.filter((t) => t.z > -26);
+    // Kitchens have lamps overhead instead of torches.
+    const lamps = inner.length ? [] : [6, -3, -12, -21].map((z) => ({ x: 0, y: 5.5, z }));
+    const spots = [{ x: -2.4, y: 3, z: 10.8 }, { x: 2.4, y: 3, z: 10.8 }, ...inner, ...lamps];
+    for (const t of spots) {
+      const light = new PointLight(look.torch, 0, 12, 1.6);
+      light.position.set(t.x, t.y, t.z);
+      const flame = new Sprite(new SpriteMaterial({ map: flameTex, color: look.torch, transparent: true, blending: AdditiveBlending, depthWrite: false, opacity: 0 }));
+      flame.position.set(t.x, t.y - 0.2, t.z);
+      flame.scale.setScalar(0.9);
+      flame.visible = t.y < 5;
+      scene.add(light, flame);
+      torches.push({ light, flame, z: t.z, on: 0 });
+    }
+    const motes = new Motes(120, look.torch, { x: 0, y: 0.3, z: 0 }, [12, 5, 26], 0.13);
+    scene.add(motes.points);
+
+    this.hero.root.removeFromParent();
+    scene.add(this.hero.root);
+    this.hero.root.position.set(0.4, 0, 17);
+    this.hero.root.rotation.y = Math.PI;
+    const post = new Post(renderer(), scene, this.camera, 0.7);
+    this.inside = { scene, post, motes, torches, door: door.getObjectByName('wall_doorway_door') };
+    this.fit();
+    canvas.style.transition = 'opacity 450ms ease-out';
+    canvas.style.opacity = '1';
+    await this.hero.walkTo(new Vector3(0.4, 0, 2), 2.8, 'Walking_A');
   }
 
   destroy() {
     this.destroyed = true;
+    this.inside?.post.dispose();
     cancelAnimationFrame(this.raf);
     this.resize?.disconnect();
     const canvas = renderer().domElement;
@@ -205,6 +302,7 @@ export class Town {
     const h = this.host.clientHeight;
     if (!w || !h) return;
     renderer().setSize(w, h, false);
+    this.inside?.post.setSize(w, h);
     this.camera.aspect = w / h;
     this.camera.fov = w / h < 0.6 ? 58 : 44;
     this.camera.updateProjectionMatrix();
@@ -215,9 +313,34 @@ export class Town {
     this.raf = requestAnimationFrame(this.frame);
     const dt = Math.min(0.05, (now - this.last) / 1000);
     this.last = now;
+    this.time += dt;
+    const p = this.hero.root.position;
+    if (this.inside) {
+      this.hero.update(dt);
+      const { post, motes, torches } = this.inside;
+      // Torches flare up as the hero gets near them.
+      for (const t of torches) {
+        if (p.z - t.z < 9) t.on = Math.min(1, t.on + dt * 2.5);
+        const flick = 0.85 + Math.sin(this.time * 13 + t.z) * 0.08 + Math.sin(this.time * 7.1 + t.z * 2) * 0.07;
+        t.light.intensity = 16 * t.on * flick;
+        (t.flame.material as SpriteMaterial).opacity = t.on * flick;
+        t.flame.scale.set(0.7 * flick, 1.1 * flick, 1);
+      }
+      motes.update(this.time);
+      // The door swings open as the hero walks up to it.
+      const door = this.inside.door;
+      if (door) door.rotation.y = -Math.min(1, Math.max(0, (16.5 - p.z) / 3)) * 1.75;
+      // Following behind the hero, looking down the hall.
+      // Low and centred through the doorway, then up once inside the hall.
+      const camZ = p.z + 7;
+      const inHall = Math.min(1, Math.max(0, (8.5 - camZ) / 3));
+      this.camera.position.set(p.x + 0.3 + inHall * 1, 2.3 + inHall * 1.2, camZ);
+      this.camera.lookAt(p.x - 0.2, 1.6 + inHall * 0.2, p.z - 6);
+      post.render(dt);
+      return;
+    }
     for (const a of this.actors) a.update(dt);
     // A low side-on tracking shot, a little ahead of the hero.
-    const p = this.hero.root.position;
     this.camera.position.set(p.x - 2, 6.5, p.z + 17);
     this.camera.lookAt(p.x + 3, 2.2, p.z - 2);
     renderer().render(this.scene, this.camera);
