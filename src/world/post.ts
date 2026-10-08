@@ -78,6 +78,20 @@ export class Post {
       this.ao = new GTAOPass(scene, camera as PerspectiveCamera, 256, 256);
       this.ao.updateGtaoMaterial({ radius: 0.6, distanceExponent: 1.5, thickness: 1, scale: 1.2 });
       this.ao.blendIntensity = 0.85;
+      // Particles are soft quads: left in, they would cast square shadows.
+      const pass = this.ao;
+      const draw = pass.render.bind(pass);
+      pass.render = (...args: Parameters<GTAOPass['render']>) => {
+        const hidden: { visible: boolean }[] = [];
+        scene.traverse((o) => {
+          if (o.visible && ((o as { isSprite?: boolean }).isSprite || (o as { isPoints?: boolean }).isPoints)) {
+            o.visible = false;
+            hidden.push(o);
+          }
+        });
+        draw(...args);
+        for (const o of hidden) o.visible = true;
+      };
       this.composer.addPass(this.ao);
     }
     this.bloom = new UnrealBloomPass(new Vector2(256, 256), strength, 0.45, 0.78);

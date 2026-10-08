@@ -24,6 +24,8 @@ import {
   type BufferGeometry,
   type Object3D,
 } from 'three';
+import { AnimationMixer, LoopRepeat } from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { piece } from './assets';
 
 /**
@@ -1391,11 +1393,72 @@ async function build(id: CreatureId, extras: Extras): Promise<Rig> {
   }
 }
 
+// ------------------------------------------------------------------ AI-made bodies
+
+/**
+ * A detailed model made with an AI 3D tool can replace any creature's body:
+ * drop public/models/ai/<creature id>.glb in and list it in manifest.json,
+ * e.g. { "king": { "turn": 0 } } (turn: extra rotation in degrees if it faces
+ * the wrong way). It is sized to the body it replaces, keeps that creature's
+ * flies, motes and orbiting junk, plays its own first animation as an idle if
+ * it has one, and takes the same lunges, flinches and deaths as everyone else.
+ */
+interface AiEntry {
+  turn?: number;
+  /** Multiplies the fitted height. */
+  scale?: number;
+}
+
+let aiList: Promise<Record<string, AiEntry>> | undefined;
+function aiModels() {
+  aiList ??= fetch('/models/ai/manifest.json')
+    .then((r) => (r.ok ? r.json() : {}))
+    .catch(() => ({}));
+  return aiList;
+}
+
+async function aiBody(id: CreatureId, fit: Box3): Promise<Pick<Rig, 'body' | 'wobble'> | undefined> {
+  const entry = (await aiModels())[id];
+  if (!entry) return undefined;
+  const gltf = await new GLTFLoader().loadAsync(`/models/ai/${id}.glb`).catch(() => undefined);
+  if (!gltf) return undefined;
+  const model = gltf.scene;
+  model.rotation.y = ((entry.turn ?? 0) * Math.PI) / 180;
+  model.updateMatrixWorld(true);
+  const box = new Box3().setFromObject(model);
+  const size = box.getSize(new Vector3());
+  const want = Math.max(0.5, fit.isEmpty() ? 2.2 : fit.max.y - Math.max(0, fit.min.y)) * (entry.scale ?? 1);
+  const k = want / Math.max(0.001, size.y);
+  model.scale.setScalar(k);
+  const centre = box.getCenter(new Vector3());
+  model.position.set(-centre.x * k, -box.min.y * k, -centre.z * k);
+  model.traverse((o) => {
+    const m = o as Mesh;
+    if (!m.isMesh) return;
+    m.castShadow = true;
+    m.receiveShadow = true;
+    const mat = m.material as MeshStandardMaterial;
+    if (mat?.isMeshStandardMaterial) mat.envMapIntensity = 0.8;
+  });
+  const body = group('', 0, 0, 0, model);
+  let mixer: AnimationMixer | undefined;
+  if (gltf.animations.length) {
+    mixer = new AnimationMixer(model);
+    const idle = gltf.animations.find((a) => /idle|breath|stand/i.test(a.name)) ?? gltf.animations[0];
+    mixer.clipAction(idle).setLoop(LoopRepeat, Infinity).play();
+  }
+  return { body, wobble: mixer ? (_t, ag, dt) => mixer.update(dt * (1 + ag * 0.6)) : undefined };
+}
+
 /** Builds a creature, ready to animate. */
 export async function creature(id: CreatureId): Promise<Creature> {
   const root = new Group();
   const extras = new Extras(root);
-  const rig = await build(id, extras);
+  let rig = await build(id, extras);
+  const fit = new Box3().setFromObject(rig.body);
+  const ai = await aiBody(id, fit);
+  // An AI-made body takes over; the creature keeps its aura and the way it dies.
+  if (ai) rig = { body: ai.body, wobble: ai.wobble, float: rig.float, death: rig.death === 'vanish' ? 'vanish' : 'topple' };
   const c = new Creature(rig, extras);
   if (root.children.length) c.root.add(...root.children);
   // Extras live on the creature's root; give them the right parent for updates.
