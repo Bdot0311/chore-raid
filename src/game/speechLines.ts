@@ -22,8 +22,8 @@ interface LineBank {
 const pick = <T,>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)];
 
 /** Lines for the enemy fighting back, shared by every minion. */
-const MINION_CHARGE = ['A skeleton is winding up.', 'The skeleton raises its blade.', 'Something rattles. It is winding up.'];
-const MINION_STRUCK = ['Ouch. The skeleton got you.', 'You took a blow. Keep going.'];
+const MINION_CHARGE = ['A minion is winding up.', 'It raises its weapon.', 'Something growls. It is winding up.'];
+const MINION_STRUCK = ['Ouch. That one got you.', 'You took a blow. Keep going.'];
 const INTERRUPT = ['Interrupted. Nice.', 'You struck first.', 'Too slow for you.'];
 const KNOCKDOWN = ['You are down. Get up. The chore is still here.', 'Knocked down. A Loot Star rolls away. Up you get.'];
 
@@ -75,6 +75,70 @@ const BANKS: Record<BossKind, LineBank> = {
     missed: ['The Colossus rebuilds. It found a box of old chargers.', 'Too slow. The Colossus heals. It has acquired a lamp.'],
     lowHp: ['The Colossus is wobbling.', 'The Colossus is barely a pile anymore.'],
     death: ['The Clutter Colossus collapses into nothing. Everything is where it lives.', 'The Colossus is defeated. You can see the floor.'],
+  },
+  bathroom: {
+    start: [
+      'The Grime Kraken rises from the plughole. It was not expecting company.',
+      'The Grime Kraken unfurls from behind the toilet. It has been there for some time.',
+    ],
+    attack: ['The Kraken flicks soap scum at you. Keep scrubbing.', 'A slimy tentacle slaps you. It smells of old shampoo.'],
+    charge: ['The Kraken is coiling a tentacle.', 'The Kraken gurgles. Something is coming up the drain.'],
+    windup: [
+      'The Kraken spreads its grime. {n} {units} in {s} seconds.',
+      'The Kraken is regrowing its mould. Scrub fast. {n} {units} in {s} seconds.',
+    ],
+    beaten: ['Critical. A tentacle comes off. It was mostly hair.', 'Critical. The Kraken loses its grip on the tiles.'],
+    missed: ['The Kraken heals. A fresh ring forms round the bath.', 'Too slow. The Kraken heals. The grout is grey again.'],
+    lowHp: ['The Kraken is sliding back down the drain.', 'The Kraken is barely a smear.'],
+    death: ['The Grime Kraken goes down the plughole. It does not wave.', 'The Kraken is defeated. The taps sparkle. You can see yourself in them.'],
+  },
+  bedroom: {
+    start: [
+      'The Duvet Dragon stirs under the covers. It would like five more minutes.',
+      'The Duvet Dragon opens one eye. It has been in bed since Sunday.',
+    ],
+    attack: ['The Dragon breathes warm, sleepy air at you. Stay awake.', 'The Dragon swats you with a pillow. It is a heavy pillow.'],
+    charge: ['The Dragon is drawing breath.', 'The Dragon rolls over. It is winding up.'],
+    windup: [
+      'The Dragon pulls the covers back up. {n} {units} in {s} seconds.',
+      'The Dragon is nesting. Tidy fast. {n} {units} in {s} seconds.',
+    ],
+    beaten: ['Critical. The Dragon loses a pillow. It sulks.', 'Critical. The duvet slips. The Dragon is cold and furious.'],
+    missed: ['The Dragon heals. It found a jumper on the chair.', 'Too slow. The Dragon heals. It has had a little nap.'],
+    lowHp: ['The Dragon is losing its nest.', 'The Dragon is down to one sock and a sheet.'],
+    death: ['The Duvet Dragon is tucked in for good. The bed is made.', 'The Dragon is defeated. The room smells of fresh air.'],
+  },
+  floors: {
+    start: [
+      'The Dust Devil whirls out from under the sofa. It brought crumbs.',
+      'The Dust Devil spins into view. It has been collecting hair. Not its own.',
+    ],
+    attack: ['The Dust Devil whips grit at you. Keep sweeping.', 'The Devil spins into your ankles. It is mostly crumbs.'],
+    charge: ['The Dust Devil is spinning faster.', 'The Devil gathers a cloud of grit.'],
+    windup: [
+      'The Dust Devil kicks up a storm. {n} {units} in {s} seconds.',
+      'The Devil drags in more dirt. Sweep fast. {n} {units} in {s} seconds.',
+    ],
+    beaten: ['Critical. The Devil loses a raisin. It was saving that.', 'Critical. The Dust Devil wobbles like a dropped top.'],
+    missed: ['The Devil heals. Somebody walked in with their shoes on.', 'Too slow. The Devil heals. It found the cereal.'],
+    lowHp: ['The Dust Devil is running out of spin.', 'The Devil is barely a breeze.'],
+    death: ['The Dust Devil settles. Into the vacuum. Forever.', 'The Devil is defeated. The floor is clean enough to eat off. Please do not.'],
+  },
+  trash: {
+    start: [
+      'The Bin Troll heaves itself out of the bin. The lid was never going to shut.',
+      'The Bin Troll looks up from a pizza box. It is not sharing.',
+    ],
+    attack: ['The Troll lobs a banana peel at you. Keep sorting.', 'The Troll swings a bin bag. It leaks. Of course it leaks.'],
+    charge: ['The Troll is winding up.', 'The Troll raises its bin lid.'],
+    windup: [
+      'The Troll stuffs the bin fuller. {n} {units} in {s} seconds.',
+      'The Troll calls for more rubbish. Sort fast. {n} {units} in {s} seconds.',
+    ],
+    beaten: ['Critical. The Troll loses its lid.', 'Critical. A yoghurt pot falls off the Troll. Rinsed, at last.'],
+    missed: ['The Troll heals. It found a takeaway box under the sofa.', 'Too slow. The Troll heals. The bin smells worse now.'],
+    lowHp: ['The Bin Troll is running out of rubbish.', 'The Troll is barely a carrier bag.'],
+    death: ['The Bin Troll is taken out. On collection day, no less.', 'The Troll is defeated. The bin has a fresh bag. Bliss.'],
   },
   king: {
     start: [

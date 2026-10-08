@@ -6,6 +6,7 @@ import { createRaid } from './raidReducer';
 import { createQuest } from './campaign';
 import { rollLoot } from './loot';
 import { touchStreak } from './progression';
+import { markFreed } from './reclaim';
 import { MAX_LOOT_STARS } from './tuning';
 import type { BossDef, LootItem, Profile, Quest, Raid, RegionId } from './types';
 
@@ -21,12 +22,30 @@ export const DEFAULT_PROFILE: Profile = {
   storySeen: false,
   xp: 0,
   regionsCleared: [],
+  regionFreedAt: {},
+  kingDefeats: 0,
   streak: { days: 0, lastDate: '' },
 };
 
+/**
+ * Fills in fields older saves lack. Regions cleared before the mess could
+ * come back count as freed `now`, so nobody returns to a map already retaken.
+ */
+export function migrateProfile(saved: Partial<Profile> | undefined, now: number): Profile {
+  const p: Profile = { ...DEFAULT_PROFILE, ...saved, settings: { ...DEFAULT_PROFILE.settings, ...saved?.settings } };
+  return {
+    ...p,
+    regionFreedAt: saved?.regionFreedAt ?? Object.fromEntries(p.regionsCleared.map((id) => [id, now])),
+    kingDefeats: saved?.kingDefeats ?? (p.regionsCleared.includes('throne') ? 1 : 0),
+  };
+}
+
 export async function loadProfile(): Promise<Profile> {
   const saved = await db.get('profile', PROFILE_KEY);
-  return { ...DEFAULT_PROFILE, ...saved, settings: { ...DEFAULT_PROFILE.settings, ...saved?.settings } };
+  const profile = migrateProfile(saved, Date.now());
+  // Save the migration straight away, or "now" would move on every load.
+  if (saved && (saved.regionFreedAt === undefined || saved.kingDefeats === undefined)) await saveProfile(profile);
+  return profile;
 }
 
 export function saveProfile(profile: Profile) {
@@ -139,18 +158,15 @@ export async function abandonQuest(quest: Quest) {
   await db.put('quests', { ...quest, status: 'abandoned', endedAt: Date.now() });
 }
 
-/** Adds XP, counts today toward the streak, and marks a region cleared when its quest is won. */
+/**
+ * Adds XP, counts today toward the streak, and marks a region freed when its
+ * quest is won (which restarts its regrow timer, and topples the King).
+ */
 export async function awardXp(xp: number, clearedRegion?: RegionId): Promise<Profile> {
   const profile = await loadProfile();
-  const next: Profile = {
-    ...profile,
-    xp: profile.xp + xp,
-    streak: touchStreak(profile.streak, Date.now()),
-    regionsCleared:
-      clearedRegion && !profile.regionsCleared.includes(clearedRegion)
-        ? [...profile.regionsCleared, clearedRegion]
-        : profile.regionsCleared,
-  };
+  const now = Date.now();
+  const awarded: Profile = { ...profile, xp: profile.xp + xp, streak: touchStreak(profile.streak, now) };
+  const next = clearedRegion ? markFreed(awarded, clearedRegion, now) : awarded;
   await saveProfile(next);
   return next;
 }

@@ -1,6 +1,6 @@
 import type { Duel } from './duel';
 
-export type BossKind = 'laundry' | 'dishes' | 'clutter' | 'king' | 'custom';
+export type BossKind = 'laundry' | 'dishes' | 'clutter' | 'bathroom' | 'bedroom' | 'floors' | 'trash' | 'king' | 'custom';
 
 export interface BossDef {
   id: string;
@@ -109,10 +109,17 @@ export interface Profile {
   xp: number;
   /** Region ids whose boss has been defeated in the campaign. */
   regionsCleared: string[];
+  /**
+   * When each region's quest was last won. Real mess grows back, so a freed
+   * lair is slowly retaken from this moment on (reclaim.ts).
+   */
+  regionFreedAt: Record<string, number>;
+  /** How many times the Mess King has been toppled. He keeps coming back. */
+  kingDefeats: number;
   streak: { days: number; lastDate: string };
 }
 
-export type RegionId = 'laundry' | 'dishes' | 'clutter' | 'throne';
+export type RegionId = 'laundry' | 'dishes' | 'clutter' | 'bathroom' | 'bedroom' | 'floors' | 'trash' | 'throne';
 
 export type QuestStatus = 'active' | 'won' | 'abandoned';
 

@@ -43,11 +43,14 @@ interface LairDef {
   end: (g: Group, z: number) => Promise<void>;
 }
 
+/** The city pack is built at a tenth of the dungeon's scale. */
+const PIECE_SCALE: Record<string, number> = { c_dumpster: 5.5, c_trash_A: 9, c_trash_B: 12, c_box_A: 5.5, c_box_B: 6 };
+
 const at = async (g: Group, name: string, x: number, y: number, z: number, ry = 0, s = 1) => {
   const p = await piece(name);
   p.position.set(x, y, z);
   p.rotation.y = ry;
-  p.scale.setScalar(s);
+  p.scale.setScalar(s * (PIECE_SCALE[name] ?? 1));
   g.add(p);
   return p;
 };
@@ -95,6 +98,65 @@ const LAIRS: Record<LairId, LairDef> = {
       await at(g, 'd_wall_doorway', 0, 0, z);
       await at(g, 'd_box_stacked', -4, 0, z + 2);
       await at(g, 'd_crates_stacked', 4, 0, z + 2, 0.4);
+    },
+  },
+  bathroom: {
+    look: { fog: 0x0c2a2a, fogNear: 10, fogFar: 40, sky: 0xb5fff4, ground: 0x123634, key: 0xe6fffb, torch: 0x5eead4, ambient: 1.2 },
+    floor: 'd_floor_tile_large',
+    floorY: 0,
+    wall: ['d_wall_cracked', 'd_wall', 'd_wall_cracked'],
+    side: ['k_kitchentable_sink_large_decorated', 'k_towelrail', 'd_barrel_small', 'k_shelf_papertowel_decorated', 'k_kitchencounter_sink_backsplash', 'k_jar_A_large', 'f_cabinet_small_decorated'],
+    scatter: ['d_bottle_A_green', 'd_bottle_C_green', 'k_jar_C_small', 'k_papertowel', 'd_floor_tile_big_grate', 'k_jar_B_medium'],
+    wallDecor: ['k_towelrail', 'd_shelves', 'f_pictureframe_large_A'],
+    torches: true,
+    end: async (g, z) => {
+      await at(g, 'd_wall_doorway', 0, 0, z);
+      await at(g, 'k_kitchentable_sink_large_decorated', -3, 0, z + 1.4);
+      await at(g, 'k_kitchentable_sink_large_decorated', 3, 0, z + 1.4);
+    },
+  },
+  bedroom: {
+    look: { fog: 0x111433, fogNear: 10, fogFar: 42, sky: 0xc7d2fe, ground: 0x1e1b4b, key: 0xfff1d6, torch: 0xffc58a, ambient: 1.05 },
+    floor: 'd_floor_wood_large_dark',
+    floorY: 0,
+    wall: ['d_wall', 'd_wall', 'd_wall_arched'],
+    side: ['f_bed_double_A', 'f_bed_single_A', 'f_bed_double_B', 'f_bed_single_B', 'f_cabinet_small_decorated', 'f_armchair_pillows', 'd_trunk_medium_A', 'f_lamp_standing'],
+    scatter: ['f_pillow_A', 'f_pillow_B', 'f_rug_oval_B', 'f_book_set', 'f_lamp_table', 'f_pillow_A'],
+    wallDecor: ['f_pictureframe_large_A', 'f_shelf_A_small', 'd_banner_patternB_blue'],
+    torches: true,
+    end: async (g, z) => {
+      await at(g, 'd_wall_doorway', 0, 0, z);
+      await at(g, 'f_bed_double_A', 0, 0, z + 2.2, Math.PI, 1.3);
+    },
+  },
+  floors: {
+    look: { fog: 0x2a2116, fogNear: 9, fogFar: 38, sky: 0xffe9c2, ground: 0x3a2e20, key: 0xfff0d0, torch: 0xffb86b, ambient: 1.1 },
+    floor: 'd_floor_wood_large',
+    floorY: 0,
+    wall: ['d_wall_broken', 'd_wall', 'd_wall_cracked'],
+    side: ['f_couch', 'f_table_low', 'd_barrel_small_stack', 'f_armchair', 'd_crates_stacked', 'f_chair_A', 'd_stool'],
+    scatter: ['f_rug_rectangle_B', 'f_book_set', 'k_food_ingredient_burger_trash', 'f_pillow_B', 'd_bottle_B_brown'],
+    wallDecor: ['f_pictureframe_large_A', 'd_shelves', 'd_banner_patternC_green'],
+    torches: true,
+    end: async (g, z) => {
+      await at(g, 'd_wall_doorway', 0, 0, z);
+      await at(g, 'd_rubble_large', -4, 0, z + 2, 0.4, 0.5);
+      await at(g, 'd_rubble_large', 4, 0, z + 2, -0.4, 0.5);
+    },
+  },
+  trash: {
+    look: { fog: 0x1a2210, fogNear: 9, fogFar: 38, sky: 0xe2ffb8, ground: 0x2a3418, key: 0xf4ffe0, torch: 0xbef264, ambient: 1.1 },
+    floor: 'd_floor_dirt_large',
+    floorY: 0,
+    wall: ['d_wall_cracked', 'd_wall_broken', 'd_wall'],
+    side: ['c_dumpster', 'c_trash_A', 'c_trash_B', 'c_box_A', 'c_box_B', 'd_barrel_large', 'k_crate'],
+    scatter: ['k_food_ingredient_burger_trash', 'k_food_ingredient_ham_trash', 'd_bottle_B_brown', 'k_plate_dirty', 'c_box_B', 'd_bottle_A_green'],
+    wallDecor: ['d_banner_patternC_green', 'd_shelves', 'd_banner_thin_yellow'],
+    torches: true,
+    end: async (g, z) => {
+      await at(g, 'd_wall_doorway', 0, 0, z);
+      await at(g, 'c_dumpster', -3.5, 0, z + 1.6, 0, 1.3);
+      await at(g, 'c_dumpster', 3.5, 0, z + 1.6, 0, 1.3);
     },
   },
   throne: {

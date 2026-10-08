@@ -1,8 +1,9 @@
 import { motion } from 'motion/react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { speech } from '../audio/speech';
-import { region, throneUnlocked } from '../game/campaign';
+import { region } from '../game/campaign';
 import { freedLines } from '../game/narration';
+import { freedMode } from '../game/reclaim';
 import type { Profile, RegionId } from '../game/types';
 import { btn } from './ui';
 
@@ -16,11 +17,12 @@ interface Props {
 export function RegionFreed({ regionId, profile, onDone }: Props) {
   const r = region(regionId);
   const hero = profile.heroName || 'Hero';
-  const ending = regionId === 'throne';
-  const throneNext = !ending && throneUnlocked(profile.regionsCleared);
-  const remaining = 3 - profile.regionsCleared.filter((id) => id !== 'throne').length;
+  const [now] = useState(Date.now);
+  const { mode, remaining } = freedMode(regionId, profile, now);
+  const ending = mode === 'ending';
+  const throneNext = mode === 'throne-first' || mode === 'throne-again';
 
-  const { title, text, spoken } = freedLines(r.name, ending, throneNext, remaining, hero);
+  const { title, text, spoken } = freedLines(r.name, mode, remaining, hero);
 
   useEffect(() => {
     speech.interrupt(spoken);
@@ -40,6 +42,7 @@ export function RegionFreed({ regionId, profile, onDone }: Props) {
       <div className="safe-pad relative mx-auto flex h-full max-w-md flex-col justify-end gap-5 pb-4">
         <motion.div initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }}>
           <p className="font-display text-lg tracking-[0.3em] text-gold">{ending ? 'THE END · FOR NOW' : 'REGION FREED'}</p>
+          {ending && <p className="text-xs font-bold uppercase tracking-widest text-white/60">Reign {profile.kingDefeats} toppled</p>}
           <h1 className="font-display text-5xl leading-tight text-white drop-shadow-lg">{title}</h1>
           <p className="mt-3 font-display text-2xl leading-snug text-white/90">{text}</p>
         </motion.div>
