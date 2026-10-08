@@ -125,7 +125,7 @@ export default function App() {
         return (
           <RegionStart
             regionId={screen.region}
-            cleared={profile.regionsCleared.includes(screen.region)}
+            profile={profile}
             onBack={goMap}
             onStart={async (levels, names) => {
               unlockAudio();
@@ -171,6 +171,10 @@ export default function App() {
             profile={profile}
             activeRaid={activeRaid}
             onBack={goMap}
+            onRegion={(region) => {
+              unlockAudio();
+              setScreen({ name: 'region', region });
+            }}
             onPick={(boss) => setScreen({ name: 'setup', boss })}
             onTrophies={() => setScreen({ name: 'trophies' })}
             onSummon={() => setScreen({ name: 'summon' })}

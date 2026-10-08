@@ -1,5 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { createQuest, currentStep, levelName, questReducer, REGIONS, XP_LEVEL_CLEAR, XP_QUEST_CLEAR, type QuestAction } from './campaign';
+import {
+  createQuest,
+  currentStep,
+  enemy,
+  LAIR_IDS,
+  levelName,
+  questReducer,
+  REGIONS,
+  throneUnlocked,
+  XP_LEVEL_CLEAR,
+  XP_QUEST_CLEAR,
+  type QuestAction,
+} from './campaign';
 import { dailyBounty, heroLevel, levelProgress, touchStreak, xpForLevel } from './progression';
 import type { Quest } from './types';
 
@@ -73,6 +85,38 @@ describe('campaign quests', () => {
     expect(levelName({ region: 'dishes', levels: 1, levelNames: [] }, 0)).toBe('Sinkful');
   });
 
+  it('every region has a counted fight and ends on a finisher, with its boss on the last level', () => {
+    for (const r of REGIONS) {
+      for (const boss of [false, true]) {
+        const steps = r.steps(boss);
+        const fights = steps.filter((s) => s.kind === 'fight');
+        expect(fights.length, r.id).toBeGreaterThan(0);
+        for (const f of fights) expect(f.countPrompt, r.id).toBeTruthy();
+        expect(steps.at(-1)!.finisher, r.id).toBe(true);
+        expect(steps.filter((s) => s.finisher)).toHaveLength(1);
+        if (boss) expect(fights.some((f) => f.enemyId === r.bossId), r.id).toBe(true);
+        else if (r.id !== 'throne') expect(steps.every((s) => s.enemyId === r.minionId), r.id).toBe(true);
+      }
+      expect(enemy(r.bossId).id, r.id).toBe(r.bossId);
+      expect(enemy(r.minionId).id, r.id).toBe(r.minionId);
+      if (r.namedLevels) expect(r.levelPresets!.length, r.id).toBeGreaterThanOrEqual(r.maxLevels);
+    }
+  });
+
+  it('every lair can be won from start to finish', () => {
+    for (const id of LAIR_IDS) {
+      const { quest } = play(createQuest('q', id, 2, [], 0), (x) => x.status !== 'active');
+      expect(quest.status, id).toBe('won');
+    }
+  });
+
+  it('opens the throne only once all seven lairs have fallen', () => {
+    expect(LAIR_IDS).toHaveLength(7);
+    expect(throneUnlocked(['laundry', 'dishes', 'clutter'])).toBe(false);
+    expect(throneUnlocked(LAIR_IDS.slice(0, 6))).toBe(false);
+    expect(throneUnlocked([...LAIR_IDS])).toBe(true);
+  });
+
   it('clamps the number of levels', () => {
     expect(createQuest('q', 'laundry', 99, [], 0).levels).toBe(6);
     expect(createQuest('q', 'laundry', 0, [], 0).levels).toBe(1);
@@ -101,7 +145,7 @@ describe('progression', () => {
     expect(s.days).toBe(1);
   });
 
-  it('rotates the daily bounty through all three regions', () => {
+  it('rotates the daily bounty through the lairs', () => {
     const seen = new Set([0, 1, 2].map((d) => dailyBounty(new Date(2026, 9, 5 + d, 12).getTime())));
     expect(seen.size).toBe(3);
   });

@@ -4,7 +4,8 @@ import { speech } from '../audio/speech';
 import { bossSpriteUrl } from '../game/bossArt';
 import { enemy, region } from '../game/campaign';
 import { dailyBounty } from '../game/progression';
-import type { RegionId } from '../game/types';
+import { lairState, reign } from '../game/reclaim';
+import type { Profile, RegionId } from '../game/types';
 import { enemyFor } from '../world/cast';
 import { preloadTown } from '../world/Town';
 import { preloadWorld } from '../world/World';
@@ -13,15 +14,13 @@ import { btn } from './ui';
 
 interface Props {
   regionId: RegionId;
-  cleared: boolean;
+  profile: Profile;
   onStart: (levels: number, names: string[]) => void;
   onBack: () => void;
 }
 
-const ROOM_PRESETS = ['Bedroom', 'Living room', 'Kitchen', 'Bathroom', 'Office', 'Kids’ room', 'Hallway', 'Garage'];
-
 /** The lair's gate: the story beat, the boss, and how big today's quest is. */
-export function RegionStart({ regionId, cleared, onStart, onBack }: Props) {
+export function RegionStart({ regionId, profile, onStart, onBack }: Props) {
   const r = region(regionId);
   const boss = enemy(r.bossId);
   const minion = enemy(r.minionId);
@@ -33,8 +32,22 @@ export function RegionStart({ regionId, cleared, onStart, onBack }: Props) {
     preloadWorld(enemyFor(minion), heroId);
   }, [minion, heroId]);
   const [levels, setLevels] = useState(r.defaultLevels);
-  const [rooms, setRooms] = useState<string[]>(['Bedroom', 'Living room']);
-  const bounty = dailyBounty(Date.now()) === regionId;
+  const presets = r.levelPresets ?? [];
+  const [rooms, setRooms] = useState<string[]>(() => presets.slice(0, r.defaultLevels));
+  const [now] = useState(Date.now);
+  const bounty = dailyBounty(now, profile.regionFreedAt) === regionId;
+  const cleared = profile.regionsCleared.includes(regionId);
+  const state = regionId === 'throne' ? undefined : lairState(profile, regionId, now);
+  const banner =
+    regionId === 'throne' && profile.kingDefeats > 0
+      ? `THE KING RETURNS · REIGN ${reign(profile)}`
+      : state === 'retaken'
+        ? 'RETAKEN · WIN IT BACK'
+        : state === 'creeping'
+          ? 'MESS CREEPING BACK'
+          : cleared
+            ? 'FREED · REPLAY'
+            : 'NEW QUEST';
   const steps = r.steps(false);
 
   useEffect(() => {
@@ -57,8 +70,8 @@ export function RegionStart({ regionId, cleared, onStart, onBack }: Props) {
         </button>
 
         <header className="text-center">
-          <p className="font-display text-sm tracking-[0.3em]" style={{ color: `hsl(${r.hue} 85% 72%)` }}>
-            {cleared ? 'FREED · REPLAY' : 'NEW QUEST'}
+          <p className="font-display text-sm tracking-[0.3em]" style={{ color: state === 'retaken' ? '#f87171' : `hsl(${r.hue} 85% 72%)` }}>
+            {banner}
           </p>
           <h1 className="font-display text-4xl leading-tight text-white drop-shadow-lg">{r.name}</h1>
           {bounty && <p className="mt-1 inline-block rounded-full bg-gold px-3 py-0.5 font-display text-sm text-dungeon-950">Today’s bounty · 2× XP</p>}
@@ -90,7 +103,7 @@ export function RegionStart({ regionId, cleared, onStart, onBack }: Props) {
             <p className="text-center font-display text-lg text-white">{r.levelsPrompt}</p>
             {r.namedLevels ? (
               <div className="mt-3 flex flex-wrap justify-center gap-2">
-                {ROOM_PRESETS.map((room) => {
+                {presets.map((room) => {
                   const on = rooms.includes(room);
                   return (
                     <button

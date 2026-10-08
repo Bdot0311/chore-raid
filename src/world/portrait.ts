@@ -2,7 +2,7 @@ import { Color, DirectionalLight, HemisphereLight, PerspectiveCamera, Scene, SRG
 import { Actor } from './Actor';
 import { animationClips, character, piece } from './assets';
 import { enemyByKey, hero, HEROES } from './cast';
-import { dress } from './costume';
+import { creature } from './creature';
 
 /**
  * Renders one character on a transparent background, for the menu portraits
@@ -32,17 +32,16 @@ export async function mountPortrait(key: string, pose: string, t: number) {
   const clips = await animationClips();
   const isHero = HEROES.some((h) => h.id === key);
   const enemy = enemyByKey(key);
-  const model = await character(isHero ? key : enemy.model);
-  const actor = new Actor(model, clips);
+  const monster = !isHero && enemy.creature ? await creature(enemy.creature) : undefined;
+  const actor = monster ?? new Actor(await character(isHero ? key : enemy.model), clips);
   if (isHero) {
     const h = hero(key);
-    actor.showOnly(h.carry, h.props);
-  } else {
+    (actor as Actor).showOnly(h.carry, h.props);
+  } else if (!monster) {
     for (const [part, color] of enemy.tints) actor.tint(part, color);
     for (const [part, color] of enemy.glows) actor.glow(part, color, 2.5);
     if (enemy.weapon) actor.attach(await piece(enemy.weapon), 'handslot.r');
     if (enemy.offhand) actor.attach(await piece(enemy.offhand), 'handslot.l');
-    if (enemy.costume) (await dress(actor, enemy.costume)).update(0.5, 1.3);
   }
   scene.add(actor.root);
   actor.root.rotation.y = 0.35;

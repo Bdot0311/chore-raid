@@ -26,7 +26,7 @@ describe('loot', () => {
 
   it('every boss kind has a trophy for every rarity', () => {
     const t = allTrophies();
-    for (const kind of ['laundry', 'dishes', 'clutter', 'custom'])
+    for (const kind of ['laundry', 'dishes', 'clutter', 'bathroom', 'bedroom', 'floors', 'trash', 'custom'])
       for (const rarity of RARITIES) expect(t.some((x) => x.kind === kind && x.rarity === rarity)).toBe(true);
     const item = rollLoot('dishes', 3, 'raid', 'loot', 0, seeded(1));
     expect(t.some((x) => x.name === item.name && x.rarity === item.rarity)).toBe(true);

@@ -18,7 +18,7 @@ import {
 } from 'three';
 import { Actor } from './Actor';
 import { animationClips, character, piece } from './assets';
-import { hero as heroDef, HEROES } from './cast';
+import { hero as heroDef, HEROES, type LairId } from './cast';
 import { lairLook, mergeStatic } from './lairs';
 import { Motes, Post } from './post';
 import { lair, renderer } from './World';
@@ -29,7 +29,7 @@ import { lair, renderer } from './World';
  * between picking a quest and its first step.
  */
 
-export type TownRegion = 'laundry' | 'dishes' | 'clutter' | 'throne';
+export type TownRegion = LairId;
 
 const S = 4; // Town pieces are map-sized; scaled up to walk among.
 const HEX_W = 2 * S;
@@ -39,6 +39,10 @@ const GATE_COLOR: Record<TownRegion, number> = {
   laundry: 0x9b6bff,
   dishes: 0x5ad1f0,
   clutter: 0xf2a03d,
+  bathroom: 0x2dd4bf,
+  bedroom: 0x818cf8,
+  floors: 0xd6b56b,
+  trash: 0x84cc16,
   throne: 0xffd24d,
 };
 

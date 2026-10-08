@@ -1,3 +1,5 @@
+import { LAIR_IDS } from './campaign';
+import { regionState } from './reclaim';
 import type { Profile, RegionId } from './types';
 
 /**
@@ -67,9 +69,13 @@ export function touchStreak(streak: Profile['streak'], now: number): Profile['st
   return { days: gap === 1 ? streak.days + 1 : 1, lastDate: today };
 }
 
-/** Today's bounty region: double XP there. Rotates daily, same for everyone. */
-export function dailyBounty(now: number): Exclude<RegionId, 'throne'> {
-  const order = ['laundry', 'dishes', 'clutter'] as const;
+/**
+ * Today's bounty region: double XP there. Rotates daily through the lairs the
+ * minions have retaken, or through every lair when none have fallen.
+ */
+export function dailyBounty(now: number, freedAt: Profile['regionFreedAt'] = {}): Exclude<RegionId, 'throne'> {
+  const retaken = LAIR_IDS.filter((id) => regionState(id, freedAt[id], now) === 'retaken');
+  const pool = retaken.length ? retaken : LAIR_IDS;
   const day = Math.floor(Date.parse(dayKey(now)) / 86_400_000);
-  return order[((day % 3) + 3) % 3];
+  return pool[((day % pool.length) + pool.length) % pool.length];
 }

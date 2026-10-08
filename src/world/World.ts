@@ -19,7 +19,7 @@ import {
 import { Actor } from './Actor';
 import { animationClips, character, piece } from './assets';
 import { hero as heroDef, type EnemyDef, type HeroDef } from './cast';
-import { dress, type Costume } from './costume';
+import { creature, type Creature } from './creature';
 import { Fx } from './fx';
 import { Motes, Post } from './post';
 import { buildLair, lairLook, SPOT_GAP, type BuiltLair } from './lairs';
@@ -87,7 +87,7 @@ export function lair(id: EnemyDef['lair']) {
 export function preloadWorld(enemy: EnemyDef, heroId?: string) {
   void lair(enemy.lair).catch(() => undefined);
   void animationClips().catch(() => undefined);
-  void character(enemy.model).catch(() => undefined);
+  if (!enemy.creature) void character(enemy.model).catch(() => undefined);
   void character(heroDef(heroId).id).catch(() => undefined);
 }
 
@@ -105,8 +105,7 @@ export class World {
   private fx = new Fx(this.scene);
   private hero!: Actor;
   private heroDef!: HeroDef;
-  private enemy!: Actor;
-  private costume?: Costume;
+  private enemy!: Actor | Creature;
   private post?: Post;
   private motes?: Motes;
   private key = new DirectionalLight(0xffffff, 2.2);
@@ -162,11 +161,11 @@ export class World {
     this.heroDef = heroDef(o.hero);
     const look = lairLook(o.enemy.lair);
 
-    const [built, clips, heroModel, enemyModel] = await Promise.all([
+    const [built, clips, heroModel, monster] = await Promise.all([
       lair(o.enemy.lair),
       animationClips(),
       character(this.heroDef.id),
-      character(o.enemy.model),
+      o.enemy.creature ? creature(o.enemy.creature) : character(o.enemy.model),
     ]);
     if (this.destroyed) return;
 
@@ -233,7 +232,7 @@ export class World {
     this.scene.add(this.hero.root);
 
     // --- enemy
-    this.enemy = new Actor(enemyModel, clips);
+    this.enemy = 'rig' in monster ? monster : new Actor(monster, clips);
     this.enemy.root.scale.setScalar(o.enemy.size);
     this.enemy.idle = 'Idle_Combat';
     for (const [part, color] of o.enemy.tints) this.enemy.tint(part, color);
@@ -248,8 +247,6 @@ export class World {
       offhand.name = 'offhand';
       this.enemy.attach(offhand, 'handslot.l');
     }
-    if (o.enemy.costume) this.costume = await dress(this.enemy, o.enemy.costume);
-    if (this.destroyed) return;
     // Every enemy gets its own materials, so it can flash white when struck.
     this.enemy.root.traverse((obj) => {
       const m = obj as Mesh;
@@ -827,7 +824,6 @@ export class World {
 
     this.hero.update(sdt);
     this.enemy.update(sdt);
-    this.costume?.update(sdt, this.time);
     this.fx.update(sdt);
     for (let i = this.tweens.length - 1; i >= 0; i--) {
       const tw = this.tweens[i];

@@ -551,7 +551,7 @@ export function QuestRunner({ initial, profile, onProfile, onSettings, onBossVic
 
       const xp = events.reduce((sum, e: QuestEvent) => sum + e.xp, 0) + (flawless ? FLAWLESS_XP : 0);
       if (!xp) return;
-      const mult = dailyBounty(Date.now()) === next.region ? 2 : 1;
+      const mult = dailyBounty(Date.now(), profile.regionFreedAt) === next.region ? 2 : 1;
       const levelBefore = heroLevel(profile.xp);
       const questDone = events.some((e) => e.type === 'quest-clear');
       const updated = await awardXp(xp * mult, questDone ? next.region : undefined);
@@ -576,7 +576,7 @@ export function QuestRunner({ initial, profile, onProfile, onSettings, onBossVic
         speech.say(say.levelUp(levelAfter));
       }
     },
-    [profile.xp, onProfile, r.name],
+    [profile.xp, profile.regionFreedAt, onProfile, r.name],
   );
 
   // A fight won just before a reload never reached the quest: hand it off once.

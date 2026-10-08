@@ -42,6 +42,8 @@ export interface RegionDef {
   maxLevels: number;
   /** Rooms have names; loads and sinkfuls are numbered. */
   namedLevels: boolean;
+  /** Named levels: the names on offer, the first `defaultLevels` picked to start. */
+  levelPresets?: string[];
   /** Spoken when the player first enters the region. */
   intro: string;
   arena: string;
@@ -50,13 +52,13 @@ export interface RegionDef {
 
 // ------------------------------------------------------------------ enemies
 
-/** Minions and the Mess King, alongside the three built-in bosses. */
+/** Minions and the Mess King, alongside the built-in bosses. */
 export const CAMPAIGN_ENEMIES: BossDef[] = [
   {
     id: 'sock-goblin',
     kind: 'laundry',
     art: 'sock-goblin',
-    name: 'The Sock Skeletons',
+    name: 'The Sock Goblins',
     chore: 'Laundry',
     unit: 'item',
     unitPlural: 'items',
@@ -88,6 +90,58 @@ export const CAMPAIGN_ENEMIES: BossDef[] = [
     unitPlural: 'things',
     countPrompt: 'How many things are out of place?',
     hue: 30,
+    createdAt: 0,
+    builtIn: true,
+  },
+  {
+    id: 'scum-slug',
+    kind: 'bathroom',
+    art: 'scum-slug',
+    name: 'The Scum Slugs',
+    chore: 'Bathroom',
+    unit: 'thing',
+    unitPlural: 'things',
+    countPrompt: 'How many things need a scrub?',
+    hue: 150,
+    createdAt: 0,
+    builtIn: true,
+  },
+  {
+    id: 'pillow-imp',
+    kind: 'bedroom',
+    art: 'pillow-imp',
+    name: 'The Pillow Imps',
+    chore: 'Bedroom',
+    unit: 'item',
+    unitPlural: 'items',
+    countPrompt: 'How many items are out of place?',
+    hue: 330,
+    createdAt: 0,
+    builtIn: true,
+  },
+  {
+    id: 'crumb-crawler',
+    kind: 'floors',
+    art: 'crumb-crawler',
+    name: 'The Crumb Crawlers',
+    chore: 'Floors',
+    unit: 'thing',
+    unitPlural: 'things',
+    countPrompt: 'How many patches of floor?',
+    hue: 50,
+    createdAt: 0,
+    builtIn: true,
+  },
+  {
+    id: 'bin-rat',
+    kind: 'trash',
+    art: 'bin-rat',
+    name: 'The Bin Rats',
+    chore: 'Rubbish',
+    unit: 'item',
+    unitPlural: 'items',
+    countPrompt: 'How many items to sort?',
+    hue: 95,
     createdAt: 0,
     builtIn: true,
   },
@@ -129,14 +183,14 @@ export const REGIONS: RegionDef[] = [
     maxLevels: 6,
     namedLevels: false,
     intro:
-      'The Laundry Lair. The Sock Skeletons guard every load, and the Laundry Lich waits in the last one. It has been waiting a while. It is fine with that.',
+      'The Laundry Lair. The Sock Goblins guard every load, and the Laundry Lich waits in the last one. It has been waiting a while. It is fine with that.',
     arena: '/art/arena-laundry.webp',
     steps: (boss) => [
       {
         id: 'gather',
         kind: 'task',
         title: 'Gather the load',
-        instruction: 'Grab everything for this load and bring it to the washer. Check under the bed. The skeletons hide socks there.',
+        instruction: 'Grab everything for this load and bring it to the washer. Check under the bed. The goblins hide socks there.',
         enemyId: 'sock-goblin',
         xp: 20,
       },
@@ -260,6 +314,7 @@ export const REGIONS: RegionDef[] = [
     defaultLevels: 2,
     maxLevels: 6,
     namedLevels: true,
+    levelPresets: ['Bedroom', 'Living room', 'Kitchen', 'Bathroom', 'Office', 'Kids’ room', 'Hallway', 'Garage'],
     intro:
       'The Clutter Keep. Every room is held by a Dust Brute, and the Clutter Colossus guards the last one. It is mostly cables.',
     arena: '/art/arena-clutter.webp',
@@ -296,6 +351,255 @@ export const REGIONS: RegionDef[] = [
         instruction: 'Clear the tables and shelves, straighten what is left, and take the basket where it goes.',
         enemyId: boss ? 'clutter' : 'dust-bunny',
         xp: 30,
+        finisher: true,
+      },
+    ],
+  },
+  {
+    id: 'bathroom',
+    name: 'The Grime Grotto',
+    chore: 'Clean the bathroom',
+    hue: 150,
+    bossId: 'bathroom',
+    minionId: 'scum-slug',
+    levelNoun: 'bathroom',
+    levelNounPlural: 'bathrooms',
+    levelsPrompt: 'Which bathrooms are we taking back?',
+    defaultLevels: 1,
+    maxLevels: 3,
+    namedLevels: true,
+    levelPresets: ['Main bathroom', 'En suite', 'Downstairs loo', 'Kids’ bathroom'],
+    intro:
+      'The Grime Grotto. The Scum Slugs cling to every tile, and the Grime Kraken lurks in the last bathroom. It lives in the plughole. It likes it there.',
+    // The lair art is 3D; this painting is only the backdrop behind the menus.
+    arena: '/art/arena-clutter.webp',
+    steps: (boss) => [
+      {
+        id: 'clear',
+        kind: 'task',
+        title: 'Clear the decks',
+        instruction: 'Bottles, toothbrushes and bath toys off the sink and the edge of the bath. Damp towels into the laundry basket.',
+        enemyId: 'scum-slug',
+        xp: 20,
+      },
+      {
+        id: 'spray',
+        kind: 'task',
+        title: 'Spray it down',
+        instruction: 'Spray cleaner on the sink, the taps, the bath or shower, and squirt some in the toilet bowl. Open a window. The slugs hate fresh air.',
+        enemyId: 'scum-slug',
+        xp: 20,
+      },
+      {
+        id: 'soak',
+        kind: 'timer',
+        title: 'Let it soak',
+        instruction: 'Leave the cleaner to loosen the grime. Start the timer here and wipe the mirror while you wait.',
+        enemyId: boss ? 'bathroom' : 'scum-slug',
+        minutes: 10,
+        xp: 15,
+      },
+      {
+        id: 'scrub',
+        kind: 'fight',
+        title: boss ? 'BOSS: Scrub the Kraken' : 'Scrub it clean',
+        instruction: 'Scrub one thing and rinse it, land one hit. Sink, taps, toilet, tiles, mirror: each one counts.',
+        enemyId: boss ? 'bathroom' : 'scum-slug',
+        countPrompt: 'How many things need a scrub?',
+        xp: 0,
+      },
+      {
+        id: 'floor',
+        kind: 'task',
+        title: 'Floor and fresh towels',
+        instruction: 'Wipe the floor, empty the little bin, and hang a fresh towel. Put the bottles back. Neatly, for once.',
+        enemyId: boss ? 'bathroom' : 'scum-slug',
+        xp: 30,
+        finisher: true,
+      },
+    ],
+  },
+  {
+    id: 'bedroom',
+    name: 'The Duvet Den',
+    chore: 'Bedroom reset',
+    hue: 330,
+    bossId: 'bedroom',
+    minionId: 'pillow-imp',
+    levelNoun: 'bedroom',
+    levelNounPlural: 'bedrooms',
+    levelsPrompt: 'Which bedrooms are we taking back?',
+    defaultLevels: 1,
+    maxLevels: 4,
+    namedLevels: true,
+    levelPresets: ['Main bedroom', 'Kids’ room', 'Guest room', 'Spare room'],
+    intro:
+      'The Duvet Den. The Pillow Imps hold every bedroom, and the Duvet Dragon sleeps in the last one. It has been asleep since Sunday. It calls this resting its eyes.',
+    arena: '/art/arena-clutter.webp',
+    steps: (boss) => [
+      {
+        id: 'air',
+        kind: 'task',
+        title: 'Let the light in',
+        instruction: 'Curtains open, window open. The Pillow Imps do not care for daylight.',
+        enemyId: 'pillow-imp',
+        xp: 15,
+      },
+      {
+        id: 'clothes',
+        kind: 'task',
+        title: 'Clothes off the floor',
+        instruction: 'Dirty clothes into the laundry basket. Clean ones folded or hung up. The chair counts as the floor.',
+        enemyId: 'pillow-imp',
+        xp: 25,
+      },
+      {
+        id: 'bed',
+        kind: 'task',
+        title: 'Make the bed',
+        instruction: 'Straighten the sheet, shake out the duvet, plump the pillows. Changing the sheets today? Now is the time.',
+        enemyId: boss ? 'bedroom' : 'pillow-imp',
+        xp: 25,
+      },
+      {
+        id: 'reset',
+        kind: 'fight',
+        title: boss ? 'BOSS: Tuck in the Dragon' : 'Put it all back',
+        instruction: 'Put one item back where it lives, land one hit. Books, chargers, shoes, the lot.',
+        enemyId: boss ? 'bedroom' : 'pillow-imp',
+        countPrompt: 'How many items are out of place?',
+        xp: 0,
+      },
+      {
+        id: 'surfaces',
+        kind: 'task',
+        title: 'Clear the bedside table',
+        instruction: 'Wipe the bedside table and the top of the dresser, and take any mugs to the kitchen. Then admire the bed. Nobody may sit on it.',
+        enemyId: boss ? 'bedroom' : 'pillow-imp',
+        xp: 30,
+        finisher: true,
+      },
+    ],
+  },
+  {
+    id: 'floors',
+    name: 'The Dust Dunes',
+    chore: 'Vacuum and sweep',
+    hue: 50,
+    bossId: 'floors',
+    minionId: 'crumb-crawler',
+    levelNoun: 'room',
+    levelNounPlural: 'rooms',
+    levelsPrompt: 'Which floors are we taking back?',
+    defaultLevels: 2,
+    maxLevels: 6,
+    namedLevels: true,
+    levelPresets: ['Kitchen', 'Living room', 'Hallway', 'Bedroom', 'Bathroom', 'Stairs', 'Dining room', 'Office'],
+    intro:
+      'The Dust Dunes. The Crumb Crawlers roam every room, and the Dust Devil spins in the last one. It is mostly crumbs. And a raisin.',
+    arena: '/art/arena-clutter.webp',
+    steps: (boss) => [
+      {
+        id: 'clear',
+        kind: 'task',
+        title: 'Clear the floor',
+        instruction: 'Pick up anything on the floor that is not the floor. Shoes, toys, that cable. Chairs up on the table if they fit.',
+        enemyId: 'crumb-crawler',
+        xp: 20,
+      },
+      {
+        id: 'edges',
+        kind: 'task',
+        title: 'Corners and edges',
+        instruction: 'Sweep or vacuum the edges and corners first, where the Crumb Crawlers nest. Under the sofa too. Especially under the sofa.',
+        enemyId: 'crumb-crawler',
+        xp: 20,
+      },
+      {
+        id: 'vacuum',
+        kind: 'fight',
+        title: boss ? 'BOSS: Vacuum the Dust Devil' : 'Vacuum it',
+        instruction: 'Split the floor into patches: the rug, under the table, by the door. Clean one patch, land one hit.',
+        enemyId: boss ? 'floors' : 'crumb-crawler',
+        countPrompt: 'How many patches of floor?',
+        xp: 0,
+      },
+      {
+        id: 'mop',
+        kind: 'task',
+        title: 'Mop the sticky bits',
+        instruction: 'Mop any hard floor, or at least wipe the sticky spots. All carpet? Lucky you. Carry on.',
+        enemyId: boss ? 'floors' : 'crumb-crawler',
+        xp: 20,
+      },
+      {
+        id: 'empty',
+        kind: 'task',
+        title: 'Empty the vacuum',
+        instruction: 'Empty the vacuum or the dustpan into the bin and put the chairs back down. Then walk across it in your socks.',
+        enemyId: boss ? 'floors' : 'crumb-crawler',
+        xp: 25,
+        finisher: true,
+      },
+    ],
+  },
+  {
+    id: 'trash',
+    name: 'The Rubbish Rift',
+    chore: 'Trash and recycling',
+    hue: 95,
+    bossId: 'trash',
+    minionId: 'bin-rat',
+    levelNoun: 'bin',
+    levelNounPlural: 'bins',
+    levelsPrompt: 'How many bins today?',
+    defaultLevels: 2,
+    maxLevels: 5,
+    namedLevels: false,
+    intro:
+      'The Rubbish Rift. The Bin Rats guard every bin, and the Bin Troll waits at the last one. It has never once taken itself out.',
+    arena: '/art/arena-clutter.webp',
+    steps: (boss) => [
+      {
+        id: 'gather',
+        kind: 'task',
+        title: 'Find the bin',
+        instruction: 'Bring this bin somewhere with a bit of space. Check under the desk and behind the door for strays.',
+        enemyId: 'bin-rat',
+        xp: 15,
+      },
+      {
+        id: 'sort',
+        kind: 'fight',
+        title: boss ? 'BOSS: Sort out the Troll' : 'Sort the recycling',
+        instruction: 'Put one item where it belongs, land one hit. Rinse the tins, flatten the boxes, rubbish in the bag.',
+        enemyId: boss ? 'trash' : 'bin-rat',
+        countPrompt: 'How many items to sort?',
+        xp: 0,
+      },
+      {
+        id: 'tie',
+        kind: 'task',
+        title: 'Tie it off',
+        instruction: 'Pull out the full bag and tie it. If it drips, double bag it. Do not ask what dripped.',
+        enemyId: boss ? 'trash' : 'bin-rat',
+        xp: 20,
+      },
+      {
+        id: 'out',
+        kind: 'task',
+        title: 'Out it goes',
+        instruction: 'Carry the bags and the recycling out to the big bins. Lid shut, so the foxes have to work for it.',
+        enemyId: boss ? 'trash' : 'bin-rat',
+        xp: 25,
+      },
+      {
+        id: 'reline',
+        kind: 'task',
+        title: 'Fresh bag in',
+        instruction: 'Give the bin a wipe if it needs one, and put a fresh bag in. The Bin Rats hate a fresh bag.',
+        enemyId: boss ? 'trash' : 'bin-rat',
+        xp: 20,
         finisher: true,
       },
     ],
@@ -359,9 +663,12 @@ export function region(id: RegionId): RegionDef {
   return REGIONS.find((r) => r.id === id)!;
 }
 
-/** The throne opens once all three bosses have fallen. */
+/** Every region but the throne: the lairs the Mess King's crew hold. */
+export const LAIR_IDS = REGIONS.filter((r) => r.id !== 'throne').map((r) => r.id) as Exclude<RegionId, 'throne'>[];
+
+/** The throne first opens once every lair's boss has fallen at least once. */
 export function throneUnlocked(cleared: string[]) {
-  return (['laundry', 'dishes', 'clutter'] as const).every((r) => cleared.includes(r));
+  return LAIR_IDS.every((r) => cleared.includes(r));
 }
 
 export function levelName(quest: Pick<Quest, 'region' | 'levels' | 'levelNames'>, level: number) {

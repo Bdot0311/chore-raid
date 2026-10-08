@@ -1,7 +1,9 @@
 import { motion } from 'motion/react';
+import { useState } from 'react';
 import { bossSpriteUrl } from '../game/bossArt';
 import { unitWord } from '../game/bosses';
-import type { BossDef, Profile, Raid } from '../game/types';
+import type { BossDef, Profile, Raid, RegionId } from '../game/types';
+import { ReclaimNotice } from './ReclaimNotice';
 
 interface Props {
   bosses: BossDef[];
@@ -13,6 +15,7 @@ interface Props {
   onTrophies: () => void;
   onSummon: () => void;
   onBack: () => void;
+  onRegion: (id: RegionId) => void;
 }
 
 function Portrait({ boss }: { boss: BossDef }) {
@@ -31,8 +34,9 @@ function Portrait({ boss }: { boss: BossDef }) {
   );
 }
 
-export function Hub({ bosses, profile, activeRaid, onPick, onResume, onAbandon, onTrophies, onSummon, onBack }: Props) {
+export function Hub({ bosses, profile, activeRaid, onPick, onResume, onAbandon, onTrophies, onSummon, onBack, onRegion }: Props) {
   const activeBoss = activeRaid && bosses.find((b) => b.id === activeRaid.bossId);
+  const [now] = useState(Date.now);
 
   return (
     <div className="min-h-full bg-[radial-gradient(circle_at_50%_0%,#2c2752,var(--color-dungeon-950)_60%)]">
@@ -63,6 +67,9 @@ export function Hub({ bosses, profile, activeRaid, onPick, onResume, onAbandon, 
             <p className="text-xs font-semibold text-gold">Trophy room →</p>
           </button>
         </section>
+
+        {/* A lair retaken on the map outranks a quick raid. */}
+        {!activeRaid && <ReclaimNotice profile={profile} now={now} onGo={onRegion} />}
 
         {activeRaid && activeBoss && (
           <motion.section

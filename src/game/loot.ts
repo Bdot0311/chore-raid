@@ -51,6 +51,30 @@ const TROPHIES: Record<BossKind, Record<Rarity, string[]>> = {
     epic: ['Lamp of Reclamation', 'Mug of Many Coffees'],
     legendary: ['The Visible Floor'],
   },
+  bathroom: {
+    common: ['Hair Clump (Retired)', 'Empty Shampoo Bottle', 'Soap Sliver'],
+    rare: ['Kraken Tentacle (Rinsed)', 'Gleaming Tap'],
+    epic: ['Grout of the Ancients', 'Squeegee of Clarity'],
+    legendary: ['The Unfogged Mirror'],
+  },
+  bedroom: {
+    common: ['Stray Hair Tie', 'Lone Pillowcase', 'Phone Charger (Short)'],
+    rare: ["Dragon's Lost Slipper", 'Freshly Plumped Pillow'],
+    epic: ['Duvet of Fierce Comfort', 'Hospital Corner'],
+    legendary: ['The Made Bed'],
+  },
+  floors: {
+    common: ['Single Raisin', 'Mystery Crumb', 'Lego Brick (Stepped On)'],
+    rare: ['Devil Dust Pouch', 'Coin From Under the Sofa'],
+    epic: ['Hoover of Holding', 'Bristle of the Broom Lord'],
+    legendary: ['The Barefoot Floor'],
+  },
+  trash: {
+    common: ['Bottle Top', 'Flattened Box', 'Twist Tie'],
+    rare: ["Troll's Bin Lid", 'Perfectly Rinsed Tin'],
+    epic: ['Bag That Did Not Split', 'Gauntlet of Recycling'],
+    legendary: ['The Empty Bin'],
+  },
   king: {
     common: ['Bottle Cap Jewel'],
     rare: ['Royal Plunger'],
