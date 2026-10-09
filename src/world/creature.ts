@@ -1458,7 +1458,17 @@ export async function creature(id: CreatureId): Promise<Creature> {
   const fit = new Box3().setFromObject(rig.body);
   const ai = await aiBody(id, fit);
   // An AI-made body takes over; the creature keeps its aura and the way it dies.
-  if (ai) rig = { body: ai.body, wobble: ai.wobble, float: rig.float, death: rig.death === 'vanish' ? 'vanish' : 'topple' };
+  if (ai) {
+    rig = { body: ai.body, wobble: ai.wobble, float: rig.float, death: rig.death === 'vanish' ? 'vanish' : 'topple' };
+    // Its painted texture carries the colour, and it is bulkier than the body
+    // the aura light was placed for: keep the light off its skin and softer.
+    const light = extras.light;
+    if (light) {
+      const front = new Box3().setFromObject(ai.body).max.z;
+      light.position.z = Math.max(light.position.z, front + 1.5);
+      light.userData.base *= 0.5;
+    }
+  }
   const c = new Creature(rig, extras);
   if (root.children.length) c.root.add(...root.children);
   // Extras live on the creature's root; give them the right parent for updates.

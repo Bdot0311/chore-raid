@@ -1,0 +1,66 @@
+diff --git a/run.py b/run.py
+index 1150529..47aa13b 100644
+--- a/run.py
++++ b/run.py
+@@ -4,6 +4,7 @@ import os
+ import time
+ 
+ import numpy as np
++import trimesh
+ import rembg
+ import torch
+ import xatlas
+@@ -172,6 +173,11 @@ for i, image in enumerate(images):
+     timer.start("Extracting mesh")
+     meshes = model.extract_mesh(scene_codes, not args.bake_texture, resolution=args.mc_resolution)
+     timer.end("Extracting mesh")
++    if args.bake_texture and len(meshes[0].faces) > 30000:
++        import fast_simplification
++        v, f = fast_simplification.simplify(meshes[0].vertices, meshes[0].faces, target_reduction=1 - 30000 / len(meshes[0].faces))
++        meshes[0] = trimesh.Trimesh(vertices=v, faces=f, process=False)
++        logging.info(f"Decimated to {len(f)} faces")
+ 
+     out_mesh_path = os.path.join(output_dir, str(i), f"mesh.{args.model_save_format}")
+     if args.bake_texture:
+@@ -182,8 +188,14 @@ for i, image in enumerate(images):
+         timer.end("Baking texture")
+ 
+         timer.start("Exporting mesh and texture")
+-        xatlas.export(out_mesh_path, meshes[0].vertices[bake_output["vmapping"]], bake_output["indices"], bake_output["uvs"], meshes[0].vertex_normals[bake_output["vmapping"]])
+-        Image.fromarray((bake_output["colors"] * 255.0).astype(np.uint8)).transpose(Image.FLIP_TOP_BOTTOM).save(out_texture_path)
++        tex = Image.fromarray((bake_output["colors"] * 255.0).astype(np.uint8)).transpose(Image.FLIP_TOP_BOTTOM)
++        tex.save(out_texture_path)
++        # TripoSR is Z-up and faces +X; glTF is Y-up and the game wants +Z.
++        out = trimesh.Trimesh(vertices=meshes[0].vertices[bake_output["vmapping"]], faces=bake_output["indices"], process=False)
++        out.apply_transform(trimesh.transformations.rotation_matrix(-np.pi / 2, [1, 0, 0]))
++        out.apply_transform(trimesh.transformations.rotation_matrix(-np.pi / 2, [0, 1, 0]))
++        out.visual = trimesh.visual.TextureVisuals(uv=bake_output["uvs"], material=trimesh.visual.material.PBRMaterial(baseColorTexture=tex.convert("RGB"), metallicFactor=0.0, roughnessFactor=0.8))
++        out.export(out_mesh_path)
+         timer.end("Exporting mesh and texture")
+     else:
+         timer.start("Exporting mesh")
+diff --git a/tsr/models/isosurface.py b/tsr/models/isosurface.py
+index 076321b..4b3b023 100644
+--- a/tsr/models/isosurface.py
++++ b/tsr/models/isosurface.py
+@@ -3,7 +3,19 @@ from typing import Callable, Optional, Tuple
+ import numpy as np
+ import torch
+ import torch.nn as nn
+-from torchmcubes import marching_cubes
++from skimage import measure
++
++
++def marching_cubes(vol: torch.Tensor, threshold: float):
++    """torchmcubes-compatible wrapper around skimage (CPU only).
++
++    torchmcubes returns vertices in (x, y, z) = (dim2, dim1, dim0) order; skimage
++    returns (dim0, dim1, dim2), so flip to match what the caller undoes.
++    """
++    v, f, _, _ = measure.marching_cubes(vol.detach().cpu().numpy(), level=threshold)
++    v = torch.from_numpy(np.ascontiguousarray(v[:, ::-1])).float()
++    f = torch.from_numpy(np.ascontiguousarray(f[:, ::-1])).long()
++    return v, f
+ 
+ 
+ class IsosurfaceHelper(nn.Module):

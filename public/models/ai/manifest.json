@@ -1,5 +1,47 @@
 {
   "king": {
     "turn": 0
+  },
+  "lich": {
+    "turn": 0
+  },
+  "warlord": {
+    "turn": 0
+  },
+  "colossus": {
+    "turn": 0
+  },
+  "kraken": {
+    "turn": 0
+  },
+  "dragon": {
+    "turn": 0
+  },
+  "devil": {
+    "turn": 0
+  },
+  "troll": {
+    "turn": 0
+  },
+  "sock": {
+    "turn": 0
+  },
+  "grease": {
+    "turn": 0
+  },
+  "dust": {
+    "turn": 0
+  },
+  "slug": {
+    "turn": 0
+  },
+  "pillow": {
+    "turn": 0
+  },
+  "crumb": {
+    "turn": 0
+  },
+  "rat": {
+    "turn": 0
   }
 }
